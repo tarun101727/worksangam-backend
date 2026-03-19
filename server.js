@@ -33,6 +33,7 @@ initSocket(server);
 
 app.use(cors({
   origin: [
+    "https://worksangam-frontend1.vercel.app",
     "https://www.workSangam.in",
     "https://worksangam-frontend.vercel.app"
   ],
