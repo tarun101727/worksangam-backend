@@ -17,11 +17,11 @@ import onlineProfessionRoutes from "./routes/onlineProfessionRoutes.js";
 import offlineProfessionRoutes from "./routes/offlineProfessionRoutes.js";
 import onlineWorkerRoutes from "./routes/onlineWorkerRoutes.js"
 import languageRoutes from "./routes/languageRoutes.js";
-const app = express();
-const server = http.createServer(app); // ✅ CORRECT
+
 dotenv.config();
 
-
+const app = express();
+const server = http.createServer(app); // ✅ CORRECT
 
 /* -------------------- MongoDB -------------------- */
 mongoose.connect(process.env.MONGODB_URI)
@@ -31,14 +31,23 @@ mongoose.connect(process.env.MONGODB_URI)
 /* ✅ INIT SOCKET (your added code) */
 initSocket(server);
 
-app.use(cors({
-  origin: "https://www.worksangam.in",
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+const allowedOrigins = [
+  "https://www.worksangam.in",
+  "https://worksangam.in"
+];
 
-app.options("*", cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    console.log("🌐 Origin:", origin); // debug
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("❌ Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
