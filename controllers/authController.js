@@ -268,22 +268,37 @@ export const createAccount = async (req, res) => {
 export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
-    console.log("📩 Email received:", email);
-
     email = email.toLowerCase().trim();
 
+    // ✅ Validate email properly
     const emailCheck = await validateEmail(email);
-    console.log("✅ Email validation result:", emailCheck);
+    if (!emailCheck.valid) {
+      return res.status(400).json({ msg: emailCheck.msg });
+    }
 
+    // ✅ Prevent duplicate accounts
     const existingUser = await User.findOne({ email });
-    console.log("👤 Existing user:", existingUser);
+    if (existingUser) {
+      return res.status(400).json({ msg: "Email already registered" });
+    }
 
+    // ✅ OTP rate limit (optional but recommended)
+    const recentOtp = await OTP.findOne({
+      email,
+      createdAt: { $gt: new Date(Date.now() - 60 * 1000) }, // 1 min
+    });
+    if (recentOtp) {
+      return res.status(429).json({
+        msg: "Please wait before requesting another OTP",
+      });
+    }
+
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log("🔢 OTP generated:", otp);
 
     await OTP.create({ email, otp });
-    console.log("💾 OTP saved");
 
+    // Send email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -292,8 +307,6 @@ export const sendOtp = async (req, res) => {
       },
     });
 
-    console.log("📧 Sending email...");
-    
     await transporter.sendMail({
       from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -301,16 +314,12 @@ export const sendOtp = async (req, res) => {
       html: `<h2>Your OTP is</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
     });
 
-    console.log("✅ Email sent");
-
     res.json({ msg: "OTP sent successfully" });
-
   } catch (err) {
-    console.error("❌ SEND OTP ERROR:", err);
+    console.error(err);
     res.status(500).json({ msg: "Internal Server Error" });
   }
 };
-
 
 export const getCurrentUser = async (req, res) => {
   try {
