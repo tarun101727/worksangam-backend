@@ -31,14 +31,14 @@ mongoose.connect(process.env.MONGODB_URI)
 /* ✅ INIT SOCKET (your added code) */
 initSocket(server);
 
+const allowedOrigins = [
+  "https://www.worksangam.in",
+  "https://worksangam.in"
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      "https://www.worksangam.in",
-      "https://worksangam.in"
-    ];
-
-    console.log("🌐 Origin:", origin);
+    console.log("🌐 Origin:", origin); // debug
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -48,9 +48,6 @@ app.use(cors({
   },
   credentials: true
 }));
-
-/* ✅ ADD THIS LINE (VERY IMPORTANT) */
-app.options('*', cors());
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
