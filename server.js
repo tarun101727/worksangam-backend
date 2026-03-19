@@ -32,11 +32,13 @@ mongoose.connect(process.env.MONGODB_URI)
 initSocket(server);
 
 app.use(cors({
-  origin: true,
+  origin: "https://www.worksangam.in",
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.options("*", cors()); 
+app.options("*", cors());
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
