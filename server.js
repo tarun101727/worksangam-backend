@@ -36,17 +36,25 @@ const allowedOrigins = [
   "https://worksangam.in"
 ];
 
+// CORS middleware
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("🌐 Origin:", origin); // debug
-
+    console.log("🌐 Origin:", origin); // Debug to see incoming requests
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+      callback(null, true); // ✅ Allow
     } else {
-      callback(new Error("❌ Not allowed by CORS"));
+      callback(null, false); // ❌ Block unlisted origins
     }
   },
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200 // For legacy browsers
+}));
+
+// Handle preflight OPTIONS requests
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json({ limit: '500mb' }));
