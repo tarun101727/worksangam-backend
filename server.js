@@ -32,11 +32,7 @@ mongoose.connect(process.env.MONGODB_URI)
 initSocket(server);
 
 app.use(cors({
-  origin: [
-    "https://worksangam-frontend1.vercel.app",
-    "https://www.worksangam.in",
-    "https://worksangam-frontend.vercel.app"
-  ],
+  origin: true,
   credentials: true,
 }));
 
