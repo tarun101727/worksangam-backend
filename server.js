@@ -34,11 +34,13 @@ initSocket(server);
 app.use(cors({
   origin: [
     "https://worksangam-frontend1.vercel.app",
-    "https://www.workSangam.in",
+    "https://www.worksangam.in",
     "https://worksangam-frontend.vercel.app"
   ],
   credentials: true,
 }));
+
+app.options("*", cors()); 
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
