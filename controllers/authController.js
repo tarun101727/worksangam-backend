@@ -264,39 +264,46 @@ export const createAccount = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
+    console.log("📩 Received send OTP request:", email);
+
     email = email.toLowerCase().trim();
 
-    // ✅ Validate email properly
+    // validate email
     const emailCheck = await validateEmail(email);
     if (!emailCheck.valid) {
+      console.log("❌ Invalid email:", emailCheck.msg);
       return res.status(400).json({ msg: emailCheck.msg });
     }
 
-    // ✅ Prevent duplicate accounts
+    // prevent duplicate accounts
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log("❌ Email already registered:", email);
       return res.status(400).json({ msg: "Email already registered" });
     }
 
-    // ✅ OTP rate limit (optional but recommended)
+    // OTP rate limit
     const recentOtp = await OTP.findOne({
       email,
-      createdAt: { $gt: new Date(Date.now() - 60 * 1000) }, // 1 min
+      createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
     });
     if (recentOtp) {
-      return res.status(429).json({
-        msg: "Please wait before requesting another OTP",
-      });
+      console.log("⏱ Too soon to send OTP again:", email);
+      return res.status(429).json({ msg: "Please wait before requesting another OTP" });
     }
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log("🔢 Generated OTP:", otp);
+
     await OTP.create({ email, otp });
 
-    // ✅ Create transporter
+    // Send email
+    console.log("✉️ Sending OTP email via Nodemailer...");
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -305,16 +312,6 @@ export const sendOtp = async (req, res) => {
       },
     });
 
-    // ✅ Verify SMTP before sending
-    transporter.verify((error, success) => {
-      if (error) {
-        console.error("❌ SMTP verification failed:", error);
-      } else {
-        console.log("✅ SMTP is ready to send emails");
-      }
-    });
-
-    // Send email
     await transporter.sendMail({
       from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -322,9 +319,11 @@ export const sendOtp = async (req, res) => {
       html: `<h2>Your OTP is</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
     });
 
+    console.log("✅ OTP email sent to:", email);
+
     res.json({ msg: "OTP sent successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("❌ sendOtp error:", err);
     res.status(500).json({ msg: "Internal Server Error" });
   }
 };
