@@ -52,13 +52,6 @@ app.use(cors({
   credentials: true
 }));
 
-// ✅ Preflight OPTIONS request handler (important for POST/PUT)
-// Preflight OPTIONS request handler (for all routes)
-app.options("/*", cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
-
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use(cookieParser());
