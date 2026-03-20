@@ -265,75 +265,98 @@ export const createAccount = async (req, res) => {
   }
 };
 
-/* ===========================
-   SEND OTP TO EMAIL
-=========================== */
-// Function to send OTP
 export const sendOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
 
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ msg: 'Email already registered.' });
+    if (!email) {
+      return res.status(400).json({ msg: "Email is required" });
     }
 
-    // Generate OTP
+    email = email.toLowerCase().trim();
+
+    console.log("📩 Incoming OTP request for:", email);
+
+   
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ msg: "Email already registered" });
+    }
+
+    // ✅ Rate limit (1 OTP per 60 sec)
+    const recentOtp = await OTP.findOne({
+      email,
+      createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
+    });
+
+    if (recentOtp) {
+      return res.status(429).json({
+        msg: "Please wait before requesting another OTP",
+      });
+    }
+
+    // ✅ Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP temporarily in the database
-    const otpRecord = new OTP({
-      email,
-      otp,
-      createdAt: new Date(),
-    });
-    await otpRecord.save();
+    await OTP.create({ email, otp });
 
-    // Set up nodemailer
+    console.log("🔐 OTP Generated:", otp);
+
+    // ✅ CHECK ENV VARIABLES
+    console.log("EMAIL_USER:", process.env.EMAIL_USER);
+    console.log(
+      "EMAIL_PASS:",
+      process.env.EMAIL_PASS ? "EXISTS" : "MISSING"
+    );
+
+    // ❌ If env missing → stop immediately
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error("❌ Email credentials missing in Render");
+      return res.status(500).json({ msg: "Email config missing" });
+    }
+
+    // ✅ STABLE NODEMAILER CONFIG (FIXED)
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
-        user: 'gaddamtarun157@gmail.com',
-        pass: 'tzyq hkcv btom ixho', // It's better to use OAuth2 or environment variables here
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
-    const mailOptions = {
-  from: '"Sunanta Jewellery" <sunanta987609@gmail.com>',
-  to: email,
-  subject: 'Your OTP for Sunanta Jewellery Signup',
-  html: `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h2 style="color: #b8860b;">Sunanta Jewellery</h2>
-      <p>Thank you for choosing <strong>Sunanta Jewellery</strong>.</p>
-      <p>Your One-Time Password (OTP) for account signup is:</p>
+    // ✅ SEND MAIL WITH ERROR LOGGING
+    try {
+      const info = await transporter.sendMail({
+        from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Verify your email",
+        html: `
+          <div style="font-family: Arial; padding: 10px;">
+            <h2>Your OTP is</h2>
+            <h1 style="letter-spacing: 5px;">${otp}</h1>
+            <p>Valid for 5 minutes</p>
+          </div>
+        `,
+      });
 
-      <h1 style="letter-spacing: 3px;">${otp}</h1>
+      console.log("✅ EMAIL SENT:", info.response);
+    } catch (mailErr) {
+      console.error("❌ EMAIL ERROR:", mailErr);
 
-      <p>This OTP is valid for 5 minutes.</p>
+      return res.status(500).json({
+        msg: "Failed to send OTP email",
+        error: mailErr.message,
+      });
+    }
 
-      <p>If you did not request this, please ignore this email.</p>
-
-      <hr />
-      <p style="font-size: 12px; color: #777;">
-        © ${new Date().getFullYear()} Sunanta Jewellery. All rights reserved.
-      </p>
-    </div>
-  `,
-};
-
-
-    await transporter.sendMail(mailOptions);
-
-    res.json({ msg: 'OTP sent to your email' });
+    return res.json({ msg: "OTP sent successfully" });
   } catch (err) {
-    console.error('Error sending OTP:', err);
-    res.status(500).json({ msg: 'Internal Server Error' });
+    console.error("❌ SEND OTP ERROR:", err);
+    return res.status(500).json({ msg: "Internal Server Error" });
   }
 };
-
-
 
 export const getCurrentUser = async (req, res) => {
   try {
