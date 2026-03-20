@@ -265,6 +265,9 @@ export const createAccount = async (req, res) => {
   }
 };
 
+/* ===========================
+   SEND OTP TO EMAIL
+=========================== */
 export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
@@ -274,59 +277,53 @@ export const sendOtp = async (req, res) => {
     }
 
     email = email.toLowerCase().trim();
-
     console.log("📩 Incoming OTP request for:", email);
 
-   
+    // ✅ Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: "Email already registered" });
     }
 
-    // ✅ Rate limit (1 OTP per 60 sec)
+    // ✅ Rate limit: 1 OTP per 60 seconds
     const recentOtp = await OTP.findOne({
       email,
       createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
     });
 
     if (recentOtp) {
-      return res.status(429).json({
-        msg: "Please wait before requesting another OTP",
-      });
+      return res.status(429).json({ msg: "Please wait before requesting another OTP" });
     }
 
     // ✅ Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     await OTP.create({ email, otp });
-
     console.log("🔐 OTP Generated:", otp);
 
-    // ✅ CHECK ENV VARIABLES
+    // ✅ Check env variables
     console.log("EMAIL_USER:", process.env.EMAIL_USER);
-    console.log(
-      "EMAIL_PASS:",
-      process.env.EMAIL_PASS ? "EXISTS" : "MISSING"
-    );
+    console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "EXISTS" : "MISSING");
 
-    // ❌ If env missing → stop immediately
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       console.error("❌ Email credentials missing in Render");
       return res.status(500).json({ msg: "Email config missing" });
     }
 
-    // ✅ STABLE NODEMAILER CONFIG (FIXED)
+    // ✅ Nodemailer transporter (Render-friendly: Gmail, port 587, TLS)
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      port: 587,        // TLS
+      secure: false,    // false = STARTTLS
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: false, // avoids certificate/network issues
+      },
     });
 
-    // ✅ SEND MAIL WITH ERROR LOGGING
+    // ✅ Send email with OTP
     try {
       const info = await transporter.sendMail({
         from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
@@ -342,16 +339,15 @@ export const sendOtp = async (req, res) => {
       });
 
       console.log("✅ EMAIL SENT:", info.response);
+      return res.json({ msg: "OTP sent successfully" });
     } catch (mailErr) {
       console.error("❌ EMAIL ERROR:", mailErr);
-
       return res.status(500).json({
         msg: "Failed to send OTP email",
         error: mailErr.message,
       });
     }
 
-    return res.json({ msg: "OTP sent successfully" });
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
     return res.status(500).json({ msg: "Internal Server Error" });
