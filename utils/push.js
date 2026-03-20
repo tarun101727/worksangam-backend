@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 webpush.setVapidDetails(
-  process.env.EMAIL_USER,
+  'https://www.worksangam.com',
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
