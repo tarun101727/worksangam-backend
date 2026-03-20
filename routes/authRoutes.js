@@ -278,4 +278,12 @@ router.get(
   getNearbyOfflineEmployees
 );
 
+router.get("/env-test", (req, res) => {
+  res.json({
+    EMAIL_USER: process.env.EMAIL_USER,
+    EMAIL_PASS_EXISTS: !!process.env.EMAIL_PASS,
+    JWT_SECRET_EXISTS: !!process.env.JWT_SECRET
+  });
+});
+
 export default router;
