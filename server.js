@@ -53,7 +53,8 @@ app.use(cors({
 }));
 
 // ✅ Preflight OPTIONS request handler (important for POST/PUT)
-app.options("*", cors({
+// Preflight OPTIONS request handler (for all routes)
+app.options("/*", cors({
   origin: allowedOrigins,
   credentials: true
 }));
