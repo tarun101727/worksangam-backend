@@ -33,7 +33,6 @@ initSocket(server);
 
 const allowedOrigins = [
   "https://www.worksangam.in",
-  "https://worksangam-backend.onrender.com.",
   "https://worksangam.in"
 ];
 
