@@ -267,6 +267,13 @@ export const createAccount = async (req, res) => {
 
 export const sendOtp = async (req, res) => {
   try {
+    console.log("📢 Checking Email Credentials...");
+    console.log("EMAIL_USER:", process.env.EMAIL_USER || "❌ NOT FOUND");
+    console.log(
+      "EMAIL_PASS:",
+      process.env.EMAIL_PASS ? "✅ EXISTS" : "❌ NOT FOUND"
+    );
+
     let { email } = req.body;
 
     if (!email) {
@@ -274,22 +281,13 @@ export const sendOtp = async (req, res) => {
     }
 
     email = email.toLowerCase().trim();
-
     console.log("📩 Incoming OTP request for:", email);
 
-    // ❌ TEMP DISABLE (can break in production)
-    // const emailCheck = await validateEmail(email);
-    // if (!emailCheck.valid) {
-    //   return res.status(400).json({ msg: emailCheck.msg });
-    // }
-
-    // ✅ Prevent duplicate accounts
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: "Email already registered" });
     }
 
-    // ✅ Rate limit (1 OTP per 60 sec)
     const recentOtp = await OTP.findOne({
       email,
       createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
@@ -301,27 +299,15 @@ export const sendOtp = async (req, res) => {
       });
     }
 
-    // ✅ Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     await OTP.create({ email, otp });
-
     console.log("🔐 OTP Generated:", otp);
 
-    // ✅ CHECK ENV VARIABLES
-    console.log("EMAIL_USER:", process.env.EMAIL_USER);
-    console.log(
-      "EMAIL_PASS:",
-      process.env.EMAIL_PASS ? "EXISTS" : "MISSING"
-    );
-
-    // ❌ If env missing → stop immediately
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       console.error("❌ Email credentials missing in Render");
       return res.status(500).json({ msg: "Email config missing" });
     }
 
-    // ✅ STABLE NODEMAILER CONFIG (FIXED)
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
@@ -332,7 +318,6 @@ export const sendOtp = async (req, res) => {
       },
     });
 
-    // ✅ SEND MAIL WITH ERROR LOGGING
     try {
       const info = await transporter.sendMail({
         from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
@@ -346,11 +331,9 @@ export const sendOtp = async (req, res) => {
           </div>
         `,
       });
-
       console.log("✅ EMAIL SENT:", info.response);
     } catch (mailErr) {
       console.error("❌ EMAIL ERROR:", mailErr);
-
       return res.status(500).json({
         msg: "Failed to send OTP email",
         error: mailErr.message,
