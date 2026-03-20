@@ -264,7 +264,6 @@ export const createAccount = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
-
 export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
@@ -295,10 +294,9 @@ export const sendOtp = async (req, res) => {
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     await OTP.create({ email, otp });
 
-    // Send email
+    // ✅ Create transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -307,6 +305,16 @@ export const sendOtp = async (req, res) => {
       },
     });
 
+    // ✅ Verify SMTP before sending
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error("❌ SMTP verification failed:", error);
+      } else {
+        console.log("✅ SMTP is ready to send emails");
+      }
+    });
+
+    // Send email
     await transporter.sendMail({
       from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
       to: email,
