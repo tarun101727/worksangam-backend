@@ -769,12 +769,10 @@ export const deleteAccount = async (req, res) => {
 };
 
 
-// authController.js
 export const createGuestUser = async (req, res) => {
   try {
-    console.log("🌟 Creating guest user...");
+    console.log("🌟 Guest creation endpoint hit");
 
-    // Create unique guest email
     const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
 
     const guestUser = new User({
@@ -784,46 +782,44 @@ export const createGuestUser = async (req, res) => {
       isVerified: false,
       avatarInitial: 'G',
       avatarColor: '#999999',
-      onboardingStep: 'role', // optional, default is 'role'
+      onboardingStep: 'role',
     });
 
-    // Save user in DB
+    console.log("🌟 Guest object:", guestUser);
+
     await guestUser.save();
     console.log("✅ Guest saved in DB:", guestUser._id);
 
-    // Generate JWT
     const token = jwt.sign(
       { id: guestUser._id, role: 'guest' },
       process.env.JWT_SECRET,
       { expiresIn: '10y' }
     );
 
-    // Set cookie
     const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
     const isProduction = process.env.NODE_ENV === 'production';
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: isProduction ? true : false, // ⚠️ set false for local dev
+      secure: isProduction,
       sameSite: isProduction ? 'None' : 'Lax',
       maxAge: tenYearsInMs,
     });
 
     res.cookie('username', guestUser.email, {
       httpOnly: false,
-      secure: isProduction ? true : false,
+      secure: isProduction,
       sameSite: isProduction ? 'None' : 'Lax',
       maxAge: tenYearsInMs,
     });
 
     res.cookie('userId', guestUser._id.toString(), {
       httpOnly: false,
-      secure: isProduction ? true : false,
+      secure: isProduction,
       sameSite: isProduction ? 'None' : 'Lax',
       maxAge: tenYearsInMs,
     });
 
-    // Respond with full guest info
     res.status(201).json({
       msg: 'Guest created',
       user: {
