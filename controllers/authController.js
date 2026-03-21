@@ -1,3 +1,4 @@
+
 import postmark from "postmark";
 import User from '../models/User.js'; 
 import bcrypt from 'bcryptjs'; 
@@ -255,7 +256,7 @@ export const createAccount = async (req, res) => {
         isGuest: false,
         onboardingStep: "completed",
       },
-      { returnDocument: 'after' }
+      { new: true }
     );
 
     res.json({ msg: "Account completed", user });
@@ -936,7 +937,7 @@ export const createEmployeeAccount = async (req, res) => {
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-      returnDocument: 'after',
+      new: true,
       runValidators: true,
     });
 
@@ -1113,7 +1114,7 @@ export const updateHirerAccount = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       updateData,
-      { returnDocument: 'after' }
+      { new: true }
     );
 
     res.json({
@@ -1349,7 +1350,7 @@ export const updateEmployeeProfileImage = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { profileImage: imagePath },
-      { returnDocument: 'after' }
+      { new: true }
     );
 
     res.json({
