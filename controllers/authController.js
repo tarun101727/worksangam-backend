@@ -1,4 +1,4 @@
-
+import postmark from "postmark";
 import User from '../models/User.js'; 
 import bcrypt from 'bcryptjs'; 
 import jwt from 'jsonwebtoken';
@@ -265,6 +265,9 @@ export const createAccount = async (req, res) => {
   }
 };
 
+/* POSTMARK CLIENT */
+const postmarkClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN);
+
 export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
@@ -272,27 +275,23 @@ export const sendOtp = async (req, res) => {
 
     email = email.toLowerCase().trim();
 
-    // validate email
-    const emailCheck = await validateEmail(email);
-    if (!emailCheck.valid) {
-      console.log("❌ Invalid email:", emailCheck.msg);
-      return res.status(400).json({ msg: emailCheck.msg });
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ msg: "Invalid email address" });
     }
 
-    // prevent duplicate accounts
+    // Prevent duplicate accounts
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log("❌ Email already registered:", email);
       return res.status(400).json({ msg: "Email already registered" });
     }
 
-    // OTP rate limit
+    // OTP rate limit (1 per minute)
     const recentOtp = await OTP.findOne({
       email,
       createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
     });
     if (recentOtp) {
-      console.log("⏱ Too soon to send OTP again:", email);
       return res.status(429).json({ msg: "Please wait before requesting another OTP" });
     }
 
@@ -300,27 +299,25 @@ export const sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     console.log("🔢 Generated OTP:", otp);
 
-    await OTP.create({ email, otp });
+    await OTP.create({ email, otp, createdAt: new Date() });
 
-    // Send email
-    console.log("✉️ Sending OTP email via Nodemailer...");
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    // Send OTP via Postmark
+    await postmarkClient.sendEmail({
+      From: "info@yourdomain.com", // must be a verified domain email
+      To: email,
+      Subject: "Your OTP Code",
+      HtmlBody: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Your OTP for Worksangam</h2>
+          <h1 style="letter-spacing: 3px;">${otp}</h1>
+          <p>This OTP is valid for 5 minutes.</p>
+          <p>If you did not request this, ignore this email.</p>
+        </div>
+      `,
+      TextBody: `Your OTP is ${otp}. Valid for 5 minutes.`,
     });
 
-    await transporter.sendMail({
-      from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Verify your email",
-      html: `<h2>Your OTP is</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
-    });
-
-    console.log("✅ OTP email sent to:", email);
-
+    console.log("✅ OTP sent via Postmark to:", email);
     res.json({ msg: "OTP sent successfully" });
   } catch (err) {
     console.error("❌ sendOtp error:", err);
