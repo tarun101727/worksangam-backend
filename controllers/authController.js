@@ -770,9 +770,11 @@ export const deleteAccount = async (req, res) => {
 
 
 // authController.js
-
 export const createGuestUser = async (req, res) => {
   try {
+    console.log("🌟 Creating guest user...");
+
+    // Create unique guest email
     const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
 
     const guestUser = new User({
@@ -782,26 +784,59 @@ export const createGuestUser = async (req, res) => {
       isVerified: false,
       avatarInitial: 'G',
       avatarColor: '#999999',
+      onboardingStep: 'role', // optional, default is 'role'
     });
 
+    // Save user in DB
     await guestUser.save();
+    console.log("✅ Guest saved in DB:", guestUser._id);
 
+    // Generate JWT
     const token = jwt.sign(
       { id: guestUser._id, role: 'guest' },
       process.env.JWT_SECRET,
       { expiresIn: '10y' }
     );
 
-    setAuthCookie(res, token, guestUser);
+    // Set cookie
+    const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
+    const isProduction = process.env.NODE_ENV === 'production';
 
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProduction ? true : false, // ⚠️ set false for local dev
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: tenYearsInMs,
+    });
+
+    res.cookie('username', guestUser.email, {
+      httpOnly: false,
+      secure: isProduction ? true : false,
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: tenYearsInMs,
+    });
+
+    res.cookie('userId', guestUser._id.toString(), {
+      httpOnly: false,
+      secure: isProduction ? true : false,
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: tenYearsInMs,
+    });
+
+    // Respond with full guest info
     res.status(201).json({
       msg: 'Guest created',
       user: {
         _id: guestUser._id,
         role: guestUser.role,
+        isGuest: guestUser.isGuest,
+        avatarInitial: guestUser.avatarInitial,
+        avatarColor: guestUser.avatarColor,
       },
     });
+
   } catch (err) {
+    console.error("❌ Guest creation failed:", err);
     res.status(500).json({ msg: 'Guest creation failed' });
   }
 };
