@@ -782,7 +782,7 @@ export const createGuestUser = async (req, res) => {
       isVerified: false,
       avatarInitial: 'G',
       avatarColor: '#999999',
-      onboardingStep: 'role',
+      onboardingStep: 'completed',
     });
 
     console.log("🌟 Guest object:", guestUser);
