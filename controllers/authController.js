@@ -1,4 +1,3 @@
-
 import postmark from "postmark";
 import User from '../models/User.js'; 
 import bcrypt from 'bcryptjs'; 
@@ -9,10 +8,7 @@ import twilio from 'twilio';
 import Media from '../models/Media.js'; 
 import OTP from '../models/OTP.js'; 
 import { io } from "../socket.js";
-import { validateEmail } from "../utils/emailValidator.js";
 import DeleteReason from "../models/DeleteReason.js";
-
-
 
 const NAME_REGEX = /^[A-Za-z]{2,30}$/;
 const MIN_AGE = 18;
@@ -219,38 +215,43 @@ export const createAccount = async (req, res) => {
     const userId = req.user.id;
     const { firstName, lastName, age, gender } = req.body;
 
+    // Validate first name
     if (!NAME_REGEX.test(firstName)) {
       return res.status(400).json({ msg: "Invalid first name" });
     }
 
+    // Validate last name
     if (!NAME_REGEX.test(lastName)) {
       return res.status(400).json({ msg: "Invalid last name" });
     }
 
+    // Validate age
     const ageNum = Number(age);
     if (!Number.isInteger(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
       return res.status(400).json({ msg: "Invalid age" });
     }
 
+    // Validate gender
     if (!ALLOWED_GENDERS.includes(gender)) {
       return res.status(400).json({ msg: "Invalid gender" });
     }
 
-    const profileImage = req.file
-      ? `/uploads/avatars/${req.file.filename}`
-      : null;
+    // Get profile image from uploaded file
+    const profileImage = req.file ? req.file.path : null;
 
+    // Generate avatar
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
 
-    const user = await User.findByIdAndUpdate(
+    // Update user with all info
+    const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
         firstName,
         lastName,
         age: ageNum,
         gender,
-        profileImage,
+        profileImage, // <- explicitly added
         avatarInitial,
         avatarColor,
         isGuest: false,
@@ -259,7 +260,7 @@ export const createAccount = async (req, res) => {
       { new: true }
     );
 
-    res.json({ msg: "Account completed", user });
+    res.json({ msg: "Account completed", user: updatedUser });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -563,9 +564,8 @@ export const adminSignup = async (req, res) => {
     const ownerExists = await User.findOne({ role: 'owner' });
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const profileImage = req.file
-      ? `/uploads/avatars/${req.file.filename}`
-      : null;
+    // ✅ Updated profile image logic
+    const profileImage = req.file ? req.file.path : null;
 
     const admin = new User({
       email: username,
@@ -770,10 +770,10 @@ export const deleteAccount = async (req, res) => {
 };
 
 
+// authController.js
+
 export const createGuestUser = async (req, res) => {
   try {
-    console.log("🌟 Guest creation endpoint hit");
-
     const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
 
     const guestUser = new User({
@@ -783,13 +783,9 @@ export const createGuestUser = async (req, res) => {
       isVerified: false,
       avatarInitial: 'G',
       avatarColor: '#999999',
-      onboardingStep: 'completed',
     });
 
-    console.log("🌟 Guest object:", guestUser);
-
     await guestUser.save();
-    console.log("✅ Guest saved in DB:", guestUser._id);
 
     const token = jwt.sign(
       { id: guestUser._id, role: 'guest' },
@@ -797,43 +793,16 @@ export const createGuestUser = async (req, res) => {
       { expiresIn: '10y' }
     );
 
-    const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'None' : 'Lax',
-      maxAge: tenYearsInMs,
-    });
-
-    res.cookie('username', guestUser.email, {
-      httpOnly: false,
-      secure: isProduction,
-      sameSite: isProduction ? 'None' : 'Lax',
-      maxAge: tenYearsInMs,
-    });
-
-    res.cookie('userId', guestUser._id.toString(), {
-      httpOnly: false,
-      secure: isProduction,
-      sameSite: isProduction ? 'None' : 'Lax',
-      maxAge: tenYearsInMs,
-    });
+    setAuthCookie(res, token, guestUser);
 
     res.status(201).json({
       msg: 'Guest created',
       user: {
         _id: guestUser._id,
         role: guestUser.role,
-        isGuest: guestUser.isGuest,
-        avatarInitial: guestUser.avatarInitial,
-        avatarColor: guestUser.avatarColor,
       },
     });
-
   } catch (err) {
-    console.error("❌ Guest creation failed:", err);
     res.status(500).json({ msg: 'Guest creation failed' });
   }
 };
@@ -910,6 +879,9 @@ export const createEmployeeAccount = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
+    // Get uploaded profile image path
+    const profileImage = req.file ? req.file.path : null;
+
     const updateData = {
       firstName,
       lastName,
@@ -932,8 +904,9 @@ export const createEmployeeAccount = async (req, res) => {
       updateData.professionType = professionType || "offline"; // fallback if frontend sends nothing
     }
 
-    if (req.file) {
-      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
+    // Add profile image if uploaded
+    if (profileImage) {
+      updateData.profileImage = profileImage;
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
@@ -1092,8 +1065,10 @@ export const getEmployeeProfile = async (req, res) => {
 export const updateHirerAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const { firstName, lastName, age, gender } = req.body;
+
+    // Get profile image path if file is uploaded
+    const profileImage = req.file ? req.file.path : null;
 
     const updateData = {};
 
@@ -1101,10 +1076,7 @@ export const updateHirerAccount = async (req, res) => {
     if (lastName) updateData.lastName = lastName;
     if (age) updateData.age = Number(age);
     if (gender) updateData.gender = gender;
-
-    if (req.file) {
-      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
-    }
+    if (profileImage) updateData.profileImage = profileImage;
 
     if (firstName) {
       updateData.avatarInitial = firstName.charAt(0).toUpperCase();
@@ -1345,7 +1317,7 @@ export const updateEmployeeProfileImage = async (req, res) => {
       return res.status(400).json({ msg: "Image required" });
     }
 
-    const imagePath = `/uploads/avatars/${req.file.filename}`;
+    const imagePath = req.file ? req.file.path : null;
 
     const user = await User.findByIdAndUpdate(
       userId,
