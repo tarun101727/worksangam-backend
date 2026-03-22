@@ -859,28 +859,13 @@ export const saveUserLocation = async (req, res) => {
 export const createEmployeeAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const {
-      firstName,
-      lastName,
-      age,
-      gender,
-      profession,
-      professionType, // from frontend
-      skills,
-      experience,
-      bio,
-      languages,
+      firstName, lastName, age, gender, profession,
+      professionType, skills, experience, bio, languages,
     } = req.body;
 
     const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    // Get uploaded profile image path
-    const profileImage = req.file ? req.file.path : null;
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
     const updateData = {
       firstName,
@@ -890,7 +875,7 @@ export const createEmployeeAccount = async (req, res) => {
       skills,
       experience: Number(experience),
       bio,
-      languages: languages.split(",").map((l) => l.trim()),
+      languages: languages.split(",").map(l => l.trim()),
       avatarInitial: firstName.charAt(0).toUpperCase(),
       avatarColor: getAvatarColor(firstName),
       role: "employee",
@@ -898,15 +883,15 @@ export const createEmployeeAccount = async (req, res) => {
       onboardingStep: "completed",
     };
 
-    // Only update profession and professionType if profession changed
+    // Only update profession and professionType if changed
     if (profession && profession !== user.profession) {
       updateData.profession = profession;
-      updateData.professionType = professionType || "offline"; // fallback if frontend sends nothing
+      updateData.professionType = professionType || "offline";
     }
 
-    // Add profile image if uploaded
-    if (profileImage) {
-      updateData.profileImage = profileImage;
+    // ✅ Save Cloudinary URL
+    if (req.file) {
+      updateData.profileImage = req.file.path || req.file?.secure_url;
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
@@ -1067,33 +1052,30 @@ export const updateHirerAccount = async (req, res) => {
     const userId = req.user.id;
     const { firstName, lastName, age, gender } = req.body;
 
-    // Get profile image path if file is uploaded
-    const profileImage = req.file ? req.file.path : null;
-
     const updateData = {};
-
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (age) updateData.age = Number(age);
     if (gender) updateData.gender = gender;
-    if (profileImage) updateData.profileImage = profileImage;
 
     if (firstName) {
       updateData.avatarInitial = firstName.charAt(0).toUpperCase();
       updateData.avatarColor = getAvatarColor(firstName);
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true }
-    );
+    // ✅ Cloudinary URL
+    if (req.file) {
+      updateData.profileImage = req.file.path || req.file?.secure_url;
+    }
+
+    const user = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    });
 
     res.json({
       msg: "Profile updated successfully",
-      user
+      user,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -1310,26 +1292,25 @@ export const changePasswordWithOld = async (req, res) => {
 
 export const updateEmployeeProfileImage = async (req, res) => {
   try {
-
     const userId = req.user.id;
 
     if (!req.file) {
       return res.status(400).json({ msg: "Image required" });
     }
 
-    const imagePath = req.file ? req.file.path : null;
+    // ✅ With Cloudinary, multer-storage-cloudinary stores the URL in req.file.path
+    const cloudinaryUrl = req.file.path || req.file?.secure_url; // fallback
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { profileImage: imagePath },
+      { profileImage: cloudinaryUrl },
       { new: true }
     );
 
     res.json({
       msg: "Profile image updated",
-      profileImage: user.profileImage
+      profileImage: user.profileImage,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
