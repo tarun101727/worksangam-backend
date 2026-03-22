@@ -257,7 +257,7 @@ export const createAccount = async (req, res) => {
         isGuest: false,
         onboardingStep: "completed",
       },
-      { new: true }
+       { returnDocument: 'after' }
     );
 
     res.json({ msg: "Account completed", user: updatedUser });
@@ -895,7 +895,7 @@ export const createEmployeeAccount = async (req, res) => {
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 
@@ -1069,7 +1069,7 @@ export const updateHirerAccount = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(userId, updateData, {
-      new: true,
+      returnDocument: 'after',
     });
 
     res.json({
@@ -1304,7 +1304,7 @@ export const updateEmployeeProfileImage = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { profileImage: cloudinaryUrl },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     res.json({
