@@ -42,6 +42,7 @@ import { changeUserRole, getAdminStats, getAllUsers, toggleUserDisable } from '.
 import { approveJob, getAllJobsForAdmin, rejectJob } from '../controllers/adminJobController.js';
 import { getReports, resolveReport } from '../controllers/adminReportController.js';
 import { getAdminLogs } from '../controllers/adminLogController.js';
+import { uploadAvatarCloud } from "../middleware/uploadCloudinary.js";
 
 
 function adminSecretMiddleware(req, res, next) {
@@ -60,7 +61,7 @@ router.post('/guest', createGuestUser);
 
 router.post(
   '/admin/signup',
-  uploadAvatar.single('profileImage'),
+  uploadAvatarCloud.single('profileImage'),
   adminSignup
 );
 
@@ -88,14 +89,14 @@ router.post(
 router.post(
   '/create-account',
   authMiddleware,
-  uploadAvatar.single('profileImage'),
+  uploadAvatarCloud.single('profileImage'),
   createAccount
 );
 
 router.post(
   "/create-employee-account",
   authMiddleware,
-  uploadAvatar.single("profileImage"),
+  uploadAvatarCloud.single("profileImage"),
   createEmployeeAccount
 );
 
@@ -228,7 +229,7 @@ router.get("/employee/:id", authMiddleware, getEmployeeProfile);
 router.put(
   "/update-hirer-account",
   authMiddleware,
-  uploadAvatar.single("profileImage"),
+  uploadAvatarCloud.single("profileImage"),
   updateHirerAccount
 );
 
@@ -268,7 +269,7 @@ router.post(
 router.post(
   "/update-employee-profile-image",
   authMiddleware,
-  uploadAvatar.single("profileImage"),
+  uploadAvatarCloud.single("profileImage"),
   updateEmployeeProfileImage
 );
 
@@ -277,13 +278,5 @@ router.get(
   authMiddleware,
   getNearbyOfflineEmployees
 );
-
-router.get("/env-test", (req, res) => {
-  res.json({
-    EMAIL_USER: process.env.EMAIL_USER,
-    EMAIL_PASS_EXISTS: !!process.env.EMAIL_PASS,
-    JWT_SECRET_EXISTS: !!process.env.JWT_SECRET
-  });
-});
 
 export default router;
