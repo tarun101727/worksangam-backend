@@ -10,6 +10,7 @@ import OTP from '../models/OTP.js';
 import { io } from "../socket.js";
 import { validateEmail } from "../utils/emailValidator.js";
 import DeleteReason from "../models/DeleteReason.js";
+import cloudinary from '../config/cloudinary.js';
 
 
 
@@ -1306,26 +1307,31 @@ export const changePasswordWithOld = async (req, res) => {
 
 export const updateEmployeeProfileImage = async (req, res) => {
   try {
-
     const userId = req.user.id;
 
     if (!req.file) {
       return res.status(400).json({ msg: "Image required" });
     }
 
-    const imagePath = `/uploads/avatars/${req.file.filename}`;
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "profile_images",      // folder in Cloudinary
+      public_id: `user_${userId}_${Date.now()}`, 
+      overwrite: true,
+      transformation: [{ width: 500, height: 500, crop: "fill" }],
+    });
 
+    // Update user's profileImage with Cloudinary URL
     const user = await User.findByIdAndUpdate(
       userId,
-      { profileImage: imagePath },
+      { profileImage: result.secure_url },
       { new: true }
     );
 
     res.json({
       msg: "Profile image updated",
-      profileImage: user.profileImage
+      profileImage: user.profileImage,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
