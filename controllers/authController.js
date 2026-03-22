@@ -8,7 +8,10 @@ import twilio from 'twilio';
 import Media from '../models/Media.js'; 
 import OTP from '../models/OTP.js'; 
 import { io } from "../socket.js";
+import { validateEmail } from "../utils/emailValidator.js";
 import DeleteReason from "../models/DeleteReason.js";
+
+
 
 const NAME_REGEX = /^[A-Za-z]{2,30}$/;
 const MIN_AGE = 18;
@@ -215,52 +218,47 @@ export const createAccount = async (req, res) => {
     const userId = req.user.id;
     const { firstName, lastName, age, gender } = req.body;
 
-    // Validate first name
     if (!NAME_REGEX.test(firstName)) {
       return res.status(400).json({ msg: "Invalid first name" });
     }
 
-    // Validate last name
     if (!NAME_REGEX.test(lastName)) {
       return res.status(400).json({ msg: "Invalid last name" });
     }
 
-    // Validate age
     const ageNum = Number(age);
     if (!Number.isInteger(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
       return res.status(400).json({ msg: "Invalid age" });
     }
 
-    // Validate gender
     if (!ALLOWED_GENDERS.includes(gender)) {
       return res.status(400).json({ msg: "Invalid gender" });
     }
 
-    // Get profile image from uploaded file
-    const profileImage = req.file ? req.file.path : null;
+    const profileImage = req.file
+      ? `/uploads/avatars/${req.file.filename}`
+      : null;
 
-    // Generate avatar
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
 
-    // Update user with all info
-    const updatedUser = await User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
       userId,
       {
         firstName,
         lastName,
         age: ageNum,
         gender,
-        profileImage, // <- explicitly added
+        profileImage,
         avatarInitial,
         avatarColor,
         isGuest: false,
         onboardingStep: "completed",
       },
-       { returnDocument: 'after' }
+      { new: true }
     );
 
-    res.json({ msg: "Account completed", user: updatedUser });
+    res.json({ msg: "Account completed", user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -564,8 +562,9 @@ export const adminSignup = async (req, res) => {
     const ownerExists = await User.findOne({ role: 'owner' });
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Updated profile image logic
-    const profileImage = req.file ? req.file.path : null;
+    const profileImage = req.file
+      ? `/uploads/avatars/${req.file.filename}`
+      : null;
 
     const admin = new User({
       email: username,
@@ -859,13 +858,25 @@ export const saveUserLocation = async (req, res) => {
 export const createEmployeeAccount = async (req, res) => {
   try {
     const userId = req.user.id;
+
     const {
-      firstName, lastName, age, gender, profession,
-      professionType, skills, experience, bio, languages,
+      firstName,
+      lastName,
+      age,
+      gender,
+      profession,
+      professionType, // from frontend
+      skills,
+      experience,
+      bio,
+      languages,
     } = req.body;
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
 
     const updateData = {
       firstName,
@@ -875,7 +886,7 @@ export const createEmployeeAccount = async (req, res) => {
       skills,
       experience: Number(experience),
       bio,
-      languages: languages.split(",").map(l => l.trim()),
+      languages: languages.split(",").map((l) => l.trim()),
       avatarInitial: firstName.charAt(0).toUpperCase(),
       avatarColor: getAvatarColor(firstName),
       role: "employee",
@@ -883,19 +894,18 @@ export const createEmployeeAccount = async (req, res) => {
       onboardingStep: "completed",
     };
 
-    // Only update profession and professionType if changed
+    // Only update profession and professionType if profession changed
     if (profession && profession !== user.profession) {
       updateData.profession = profession;
-      updateData.professionType = professionType || "offline";
+      updateData.professionType = professionType || "offline"; // fallback if frontend sends nothing
     }
 
-    // ✅ Save Cloudinary URL
     if (req.file) {
-      updateData.profileImage = req.file.path || req.file?.secure_url;
+      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-      returnDocument: 'after',
+      new: true,
       runValidators: true,
     });
 
@@ -1050,32 +1060,36 @@ export const getEmployeeProfile = async (req, res) => {
 export const updateHirerAccount = async (req, res) => {
   try {
     const userId = req.user.id;
+
     const { firstName, lastName, age, gender } = req.body;
 
     const updateData = {};
+
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (age) updateData.age = Number(age);
     if (gender) updateData.gender = gender;
+
+    if (req.file) {
+      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
+    }
 
     if (firstName) {
       updateData.avatarInitial = firstName.charAt(0).toUpperCase();
       updateData.avatarColor = getAvatarColor(firstName);
     }
 
-    // ✅ Cloudinary URL
-    if (req.file) {
-      updateData.profileImage = req.file.path || req.file?.secure_url;
-    }
-
-    const user = await User.findByIdAndUpdate(userId, updateData, {
-      returnDocument: 'after',
-    });
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    );
 
     res.json({
       msg: "Profile updated successfully",
-      user,
+      user
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -1292,25 +1306,26 @@ export const changePasswordWithOld = async (req, res) => {
 
 export const updateEmployeeProfileImage = async (req, res) => {
   try {
+
     const userId = req.user.id;
 
     if (!req.file) {
       return res.status(400).json({ msg: "Image required" });
     }
 
-    // ✅ With Cloudinary, multer-storage-cloudinary stores the URL in req.file.path
-    const cloudinaryUrl = req.file.path || req.file?.secure_url; // fallback
+    const imagePath = `/uploads/avatars/${req.file.filename}`;
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { profileImage: cloudinaryUrl },
-      { returnDocument: 'after' }
+      { profileImage: imagePath },
+      { new: true }
     );
 
     res.json({
       msg: "Profile image updated",
-      profileImage: user.profileImage,
+      profileImage: user.profileImage
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
