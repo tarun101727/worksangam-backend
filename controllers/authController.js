@@ -1,5 +1,5 @@
 import postmark from "postmark";
-import User from '../models/User.js'; 
+import User from '../models/User.js';  
 import bcrypt from 'bcryptjs'; 
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv'; 
@@ -236,18 +236,9 @@ export const createAccount = async (req, res) => {
       return res.status(400).json({ msg: "Invalid gender" });
     }
 
-    let profileImage = null;
-
-if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-    overwrite: true,
-    transformation: [{ width: 500, height: 500, crop: "fill" }],
-  });
-
-  profileImage = result.secure_url;
-}
+    const profileImage = req.file
+      ? `/uploads/avatars/${req.file.filename}`
+      : null;
 
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
@@ -911,15 +902,8 @@ export const createEmployeeAccount = async (req, res) => {
     }
 
     if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-    overwrite: true,
-    transformation: [{ width: 500, height: 500, crop: "fill" }],
-  });
-
-  updateData.profileImage = result.secure_url;
-}
+      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -1088,15 +1072,8 @@ export const updateHirerAccount = async (req, res) => {
     if (gender) updateData.gender = gender;
 
     if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-    overwrite: true,
-    transformation: [{ width: 500, height: 500, crop: "fill" }],
-  });
-
-  updateData.profileImage = result.secure_url;
-}
+      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
+    }
 
     if (firstName) {
       updateData.avatarInitial = firstName.charAt(0).toUpperCase();
@@ -1437,4 +1414,4 @@ export const getNearbyOfflineEmployees = async (req, res) => {
     console.error("Nearby employees error:", err);
     res.status(500).json({ msg: "Server error" });
   }
-};
+}
