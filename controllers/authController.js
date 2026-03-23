@@ -236,9 +236,16 @@ export const createAccount = async (req, res) => {
       return res.status(400).json({ msg: "Invalid gender" });
     }
 
-    const profileImage = req.file
-      ? `/uploads/avatars/${req.file.filename}`
-      : null;
+    let profileImage = null;
+
+if (req.file) {
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: "profile_images",
+    public_id: `user_${userId}_${Date.now()}`,
+  });
+
+  profileImage = result.secure_url; // ✅ CLOUDINARY URL
+}
 
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
@@ -563,9 +570,16 @@ export const adminSignup = async (req, res) => {
     const ownerExists = await User.findOne({ role: 'owner' });
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const profileImage = req.file
-      ? `/uploads/avatars/${req.file.filename}`
-      : null;
+    let profileImage = null;
+
+if (req.file) {
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: "profile_images",
+    public_id: `admin_${Date.now()}`,
+  });
+
+  profileImage = result.secure_url;
+}
 
     const admin = new User({
       email: username,
@@ -902,8 +916,13 @@ export const createEmployeeAccount = async (req, res) => {
     }
 
     if (req.file) {
-      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
-    }
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: "profile_images",
+    public_id: `user_${userId}_${Date.now()}`,
+  });
+
+  updateData.profileImage = result.secure_url;
+}
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -1072,8 +1091,13 @@ export const updateHirerAccount = async (req, res) => {
     if (gender) updateData.gender = gender;
 
     if (req.file) {
-      updateData.profileImage = `/uploads/avatars/${req.file.filename}`;
-    }
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: "profile_images",
+    public_id: `user_${userId}_${Date.now()}`,
+  });
+
+  updateData.profileImage = result.secure_url;
+}
 
     if (firstName) {
       updateData.avatarInitial = firstName.charAt(0).toUpperCase();
