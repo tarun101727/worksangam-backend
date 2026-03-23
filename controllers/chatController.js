@@ -1,5 +1,5 @@
-
-
+import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
@@ -111,7 +111,21 @@ res.json(populated);
 export const sendMedia = async (req, res) => {
   try {
     const caption = req.body?.caption || "";
-    const imagePath = req.file?.filename;
+
+    let imageUrl = null;
+
+    // 🔥 Upload to Cloudinary
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "chat_media",
+        resource_type: "auto", // IMPORTANT for video support
+      });
+
+      imageUrl = result.secure_url;
+
+      // 🧹 delete local temp file
+      fs.unlinkSync(req.file.path);
+    }
 
     const encrypted = encryptMessage(caption);
 
@@ -119,34 +133,21 @@ export const sendMedia = async (req, res) => {
       chatId: req.params.chatId,
       sender: req.user.id,
       encryptedMessage: encrypted,
-      image: imagePath
+      image: imageUrl // ✅ SAVE CLOUDINARY URL
     });
 
-    const populated = await msg.populate("sender", "profileImage firstName lastName");
+    const populated = await msg.populate(
+      "sender",
+      "profileImage firstName lastName"
+    );
 
-    // ✅ Define message to send in socket
-    const message = caption; // <--- add this line
+    const message = caption;
 
-    // Emit message to chat participants
+    // socket emit
     io.to(req.params.chatId).emit("receive-message", {
       ...populated._doc,
       message
     });
-
-    // 🔔 Create notification for receiver
-    const chat = await Chat.findById(req.params.chatId);
-    const receiverId = chat.participants.find(id => id.toString() !== req.user.id);
-
-    const chatNotification = await ChatNotification.create({
-      chat: chat._id,
-      sender: req.user.id,
-      receiver: receiverId,
-      message
-    });
-
-    const populatedNotif = await chatNotification.populate("sender", "firstName lastName profileImage");
-
-    io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
 
     res.json(populated);
 
