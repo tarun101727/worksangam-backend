@@ -46,6 +46,16 @@ role
       console.log(`💬 User ${userId} joined chat ${chatId}`);
     });
 
+    /* -------------------- TYPING -------------------- */
+
+socket.on("typing", ({ chatId, userId }) => {
+  socket.to(chatId).emit("user-typing", { userId });
+});
+
+socket.on("stop-typing", ({ chatId, userId }) => {
+  socket.to(chatId).emit("user-stop-typing", { userId });
+});
+
     socket.on("send-message", ({ chatId, message }) => {
       socket.to(chatId).emit("receive-message", message);
     });
