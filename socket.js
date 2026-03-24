@@ -56,9 +56,12 @@ socket.on("stop-typing", ({ chatId, userId }) => {
   socket.to(chatId).emit("user-stop-typing", { userId });
 });
 
-    socket.on("send-message", ({ chatId, message }) => {
-      socket.to(chatId).emit("receive-message", message);
-    });
+    socket.on("send-message", ({ chatId, message, sender }) => {
+  socket.to(chatId).emit("receive-message", {
+    message,
+    sender
+  });
+});
 
     /* -------------------- USER ROOM -------------------- */
 
