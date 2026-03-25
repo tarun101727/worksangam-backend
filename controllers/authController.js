@@ -311,7 +311,7 @@ export const sendOtp = async (req, res) => {
 
     // Send OTP via Postmark
     await postmarkClient.sendEmail({
-      From: "info@yourdomain.com", // must be a verified domain email
+      From: "info@worksangam.in",
       To: email,
       Subject: "Your OTP Code",
       HtmlBody: `
