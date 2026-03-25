@@ -426,64 +426,40 @@ export const logout = (req, res) => {
 // Function to send OTP for password reset
 export const sendOtpForgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
 
-    // Check if email exists
+    email = email.toLowerCase().trim();
+
     const existingUser = await User.findOne({ email });
     if (!existingUser) {
       return res.status(400).json({ msg: 'Email not found.' });
     }
 
-    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP temporarily in the database
-    const otpRecord = new OTP({
+    await OTP.create({
       email,
       otp,
       createdAt: new Date(),
     });
-    await otpRecord.save();
 
-    // Send OTP email (same as above)
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    await postmarkClient.sendEmail({
+      From: "Worksangam <info@worksangam.in>",
+      To: email,
+      Subject: "Reset Password OTP",
+      HtmlBody: `
+        <h2>Password Reset OTP</h2>
+        <h1>${otp}</h1>
+        <p>Valid for 5 minutes</p>
+      `,
+      TextBody: `Your OTP is ${otp}`,
     });
 
-    const mailOptions = {
-  from: '"Sunanta Jewellery" <gaddamtarun157@gmail.com>',
-  to: email,
-  subject: 'Your OTP for Sunanta Jewellery Signup',
-  html: `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h2 style="color: #b8860b;">Sunanta Jewellery</h2>
-      <p>Thank you for choosing <strong>Sunanta Jewellery</strong>.</p>
-      <p>Your One-Time Password (OTP) for account signup is:</p>
+    res.json({ msg: 'OTP sent successfully' });
 
-      <h1 style="letter-spacing: 3px;">${otp}</h1>
-
-      <p>This OTP is valid for 5 minutes.</p>
-
-      <p>If you did not request this, please ignore this email.</p>
-
-      <hr />
-      <p style="font-size: 12px; color: #777;">
-        © ${new Date().getFullYear()} Sunanta Jewellery. All rights reserved.
-      </p>
-    </div>
-  `,
-};
-
-    await transporter.sendMail(mailOptions);
-
-    res.json({ msg: 'OTP sent to your email' });
   } catch (err) {
-    console.error('Error sending OTP:', err);
-    res.status(500).json({ msg: 'Internal Server Error' });
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -1126,10 +1102,7 @@ export const updateHirerAccount = async (req, res) => {
 ================================ */
 export const sendOtpToCurrentEmail = async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ msg: "User not found" });
+    const user = await User.findById(req.user.id);
 
     const email = user.email;
 
@@ -1141,25 +1114,17 @@ export const sendOtpToCurrentEmail = async (req, res) => {
       createdAt: new Date(),
     });
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    await postmarkClient.sendEmail({
+      From: "Worksangam <info@worksangam.in>",
+      To: email,
+      Subject: "Security Verification OTP",
+      HtmlBody: `<h2>Your OTP</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
+      TextBody: `OTP: ${otp}`,
     });
 
-    await transporter.sendMail({
-      from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Security verification OTP",
-      html: `<h2>Your OTP is</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
-    });
-
-    res.json({ msg: "OTP sent to your email" });
+    res.json({ msg: "OTP sent" });
 
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
@@ -1206,10 +1171,11 @@ export const verifyCurrentEmailOtp = async (req, res) => {
 ================================ */
 export const sendOtpToNewEmail = async (req, res) => {
   try {
-    const { newEmail } = req.body;
+    let { newEmail } = req.body;
+
+    newEmail = newEmail.toLowerCase().trim();
 
     const existing = await User.findOne({ email: newEmail });
-
     if (existing) {
       return res.status(400).json({ msg: "Email already used" });
     }
@@ -1222,22 +1188,15 @@ export const sendOtpToNewEmail = async (req, res) => {
       createdAt: new Date(),
     });
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    await postmarkClient.sendEmail({
+      From: "Worksangam <info@worksangam.in>",
+      To: newEmail,
+      Subject: "Verify New Email",
+      HtmlBody: `<h2>Your OTP</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
+      TextBody: `OTP: ${otp}`,
     });
 
-    await transporter.sendMail({
-      from: `"Sunanta Jewellery" <${process.env.EMAIL_USER}>`,
-      to: newEmail,
-      subject: "Verify new email",
-      html: `<h2>Your OTP is</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
-    });
-
-    res.json({ msg: "OTP sent to new email" });
+    res.json({ msg: "OTP sent" });
 
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
