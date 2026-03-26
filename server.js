@@ -36,28 +36,33 @@ initSocket(server);
 const allowedOrigins = [
   "https://www.worksangam.in",
   "https://worksangam.in",
+  "http://localhost:5173", // for local testing
 ];
 
-// ✅ CORS middleware
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("🌐 Origin:", origin); // debug to see what browser sends
+    console.log("🌐 Origin:", origin);
 
-    // allow requests with no origin (like Postman or server-to-server)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("❌ Not allowed by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
+    // allow no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    return callback(new Error("CORS not allowed for: " + origin));
   },
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use(cookieParser());
 
+
+app.options("*", cors());
 /* -------------------- Routes -------------------- */
 app.get('/favicon.ico', (_, res) => res.sendStatus(204));
 app.use('/api/auth', authRoutes);
