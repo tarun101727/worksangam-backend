@@ -35,7 +35,8 @@ initSocket(server);
 
 const allowedOrigins = [
   "https://www.worksangam.in",
-  "https://worksangam.in"
+  "https://worksangam.in",
+  "https://worksangam.vercel.app",
 ];
 
 // ✅ CORS middleware
