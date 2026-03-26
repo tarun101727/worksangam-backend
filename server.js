@@ -38,17 +38,24 @@ const allowedOrigins = [
   "https://worksangam.in",
 ];
 
-// ✅ CORS middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    console.log("🌐 Origin:", origin); // debug to see what browser sends
+  origin: (origin, callback) => {
+    console.log("🌐 Origin:", origin);
 
-    // allow requests with no origin (like Postman or server-to-server)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+    const allowedOrigins = [
+      "https://worksangam.in",
+      "https://www.worksangam.in",
+      "https://worksangam.railway.app"
+    ];
+
+    // allow requests with no origin (Postman, mobile apps, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, origin); // ✅ THIS IS THE FIX
     } else {
       console.log("❌ Not allowed by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
+      callback(null, false);
     }
   },
   credentials: true
