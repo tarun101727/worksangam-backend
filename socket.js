@@ -5,13 +5,9 @@ let io;
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-  origin: [
-    "https://worksangam.in",
-    "https://www.worksangam.in"
-  ],
-  methods: ["GET", "POST"],
-  credentials: true
-},
+      origin: true,
+      credentials: true,
+    },
   });
 
   io.on("connection", (socket) => {
