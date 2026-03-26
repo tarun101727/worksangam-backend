@@ -1,18 +1,15 @@
+
 import { Server } from "socket.io";
 
 let io;
 
 export const initSocket = (server) => {
   io = new Server(server, {
-  cors: {
-    origin: [
-      "https://worksangam.in",
-      "https://www.worksangam.in",
-      "https://worksangam.railway.app"
-    ],
-    credentials: true,
-  },
-});
+    cors: {
+      origin: true,
+      credentials: true,
+    },
+  });
 
   io.on("connection", (socket) => {
     const userId = socket.handshake.auth.userId;
