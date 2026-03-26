@@ -62,7 +62,7 @@ app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use(cookieParser());
 
 
-app.options("*", cors());
+app.options("/*", cors());
 /* -------------------- Routes -------------------- */
 app.get('/favicon.ico', (_, res) => res.sendStatus(204));
 app.use('/api/auth', authRoutes);
