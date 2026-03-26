@@ -1,4 +1,3 @@
-
 import { Server } from "socket.io";
 
 let io;
@@ -88,3 +87,4 @@ export const emitJobToEmployees = (job) => {
 };
 
 export { io };
+
