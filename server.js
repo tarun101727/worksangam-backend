@@ -35,8 +35,7 @@ initSocket(server);
 
 const allowedOrigins = [
   "https://www.worksangam.in",
-  "https://worksangam.in",
-  "https://worksangam.railway.app"
+  "https://worksangam.in"
 ];
 
 // ✅ CORS middleware
