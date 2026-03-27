@@ -1,9 +1,9 @@
+
 import User from "../models/User.js";
 import HirerPost from "../models/HirerPost.js";
 import { io } from "../socket.js";
 import axios from "axios";
-import cloudinary from "../config/cloudinary.js";
-import fs from "fs";
+
 
 
 /* ================= CREATE POST ================= */
@@ -136,31 +136,13 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ msg: "Custom time range required" });
     }
 
-    /* ================= HANDLE FILES (CLOUDINARY) ================= */
-const files = req.files || [];
+    /* ================= HANDLE FILES ================= */
+    const files = req.files || [];
 
-const media = [];
-
-for (const file of files) {
-  const isVideo = file.mimetype.startsWith("video");
-
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: "hirer_posts",
-    resource_type: isVideo ? "video" : "image",
-    public_id: `post_${hirerId}_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 8)}`,
-  });
-
-  media.push({
-    url: result.secure_url,
-    type: isVideo ? "video" : "image",
-    public_id: result.public_id,
-  });
-
-  // ✅ OPTIONAL (delete local file after upload)
-  fs.unlinkSync(file.path);
-}
+    const media = files.map((file) => ({
+      url: `/uploads/hirer-posts/${file.filename}`,
+      type: file.mimetype.startsWith("video") ? "video" : "image",
+    }));
 
     /* ================= CREATE POST ================= */
     const post = await HirerPost.create({
