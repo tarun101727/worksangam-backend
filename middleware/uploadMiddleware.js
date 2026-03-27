@@ -1,6 +1,6 @@
 import multer from "multer";
 
-const storage = multer.memoryStorage();
+const storage = multer.memoryStorage(); 
 
 const fileFilter = (req, file, cb) => {
   if (
