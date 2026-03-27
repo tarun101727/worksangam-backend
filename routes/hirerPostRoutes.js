@@ -1,4 +1,3 @@
-
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import {
@@ -21,7 +20,25 @@ const router = express.Router();
 router.post(
   "/create",
   authMiddleware,
-  upload.array("media", 6), // max 6 files
+  (req, res, next) => {
+    upload.array("media", 6)(req, res, function (err) {
+      if (err) {
+        console.error("MULTER ERROR:", err);
+
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ msg: "File too large (max 30MB)" });
+        }
+
+        if (err.code === "LIMIT_UNEXPECTED_FILE") {
+          return res.status(400).json({ msg: "Too many files or wrong field name (use 'media')" });
+        }
+
+        return res.status(400).json({ msg: err.message });
+      }
+
+      next();
+    });
+  },
   createPost
 );
 router.get("/urgent-matches/:postId", authMiddleware, getUrgentMatches);
