@@ -3,7 +3,24 @@ import HirerPost from "../models/HirerPost.js";
 import { io } from "../socket.js";
 import axios from "axios";
 import cloudinary from "../config/cloudinary.js";
-import fs from "fs";
+import streamifier from "streamifier";
+
+const uploadToCloudinary = (file, isVideo) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "hirer_posts",
+        resource_type: isVideo ? "video" : "image",
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+
+    streamifier.createReadStream(file.buffer).pipe(stream);
+  });
+};
 
 
 /* ================= CREATE POST ================= */
@@ -144,22 +161,13 @@ const media = [];
 for (const file of files) {
   const isVideo = file.mimetype.startsWith("video");
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: "hirer_posts",
-    resource_type: isVideo ? "video" : "image",
-    public_id: `post_${hirerId}_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 8)}`,
-  });
+  const result = await uploadToCloudinary(file, isVideo);
 
   media.push({
     url: result.secure_url,
     type: isVideo ? "video" : "image",
     public_id: result.public_id,
   });
-
-  // ✅ OPTIONAL (delete local file after upload)
-  fs.unlinkSync(file.path);
 }
 
     /* ================= CREATE POST ================= */
