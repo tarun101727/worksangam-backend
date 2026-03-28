@@ -476,48 +476,43 @@ export const updateJob = async (req, res) => {
       maxPrice,
       currency,
       languages = [],
+      preferredTime,
+      safetyWarnings,
+      addressDetails,
+      location,
+      media,
     } = req.body;
 
     const job = await HirerPost.findById(jobId);
 
-    if (!job) {
-      return res.status(404).json({ msg: "Job not found" });
-    }
-
-    // 🔒 Only owner can update
-    if (job.hirer.toString() !== userId) {
+    if (!job) return res.status(404).json({ msg: "Job not found" });
+    if (job.hirer.toString() !== userId)
       return res.status(403).json({ msg: "Not allowed" });
-    }
 
-    // ✅ Update fields (only if provided)
+    // 🔹 Update all fields
     if (profession) job.profession = profession;
     if (description) job.description = description;
     if (languages) job.languages = languages;
+    if (preferredTime) job.preferredTime = preferredTime;
+    if (safetyWarnings) job.safetyWarnings = safetyWarnings;
+    if (addressDetails) job.addressDetails = addressDetails;
+    if (location) job.location = location;
+    if (media) job.media = media;
 
-    // 💰 Update price logic
+    // 🔹 Update price
     if (priceType === "fixed") {
-      job.price = {
-        type: "fixed",
-        value: expectedPrice,
-        currency,
-      };
-    }
-
-    if (priceType === "negotiable") {
-      job.price = {
-        type: "negotiable",
-        min: minPrice,
-        max: maxPrice,
-        currency,
-      };
+      job.price = { type: "fixed", value: expectedPrice, currency };
+    } else if (priceType === "hourly") {
+      job.price = { type: "hourly", value: expectedPrice, currency };
+    } else if (priceType === "negotiable") {
+      job.price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+    } else if (priceType === "inspect_quote") {
+      job.price = { type: "inspect_quote" };
     }
 
     await job.save();
 
-    res.json({
-      msg: "Job updated successfully",
-      job,
-    });
+    res.json({ msg: "Job updated successfully", job });
 
   } catch (err) {
     console.error("Update job error:", err);
