@@ -36,7 +36,6 @@ initSocket(server);
 const allowedOrigins = [
   "https://www.worksangam.in",
   "https://worksangam.in",
-  "http://localhost:5173", // for local testing
 ];
 
 app.use(cors({
