@@ -341,6 +341,7 @@ export const updatePostLocation = async (req, res) => {
 };
 
 
+/* ================= REVERSE GEOCODING ================= */
 export const getLocationFromCoordinates = async (req, res) => {
   const { lat, lng } = req.query;
 
@@ -350,22 +351,24 @@ export const getLocationFromCoordinates = async (req, res) => {
 
   try {
     const response = await axios.get(
-      "https://api.opencagedata.com/geocode/v1/json",
+      "https://nominatim.openstreetmap.org/reverse",
       {
         params: {
-          q: `${lat},${lng}`,
-          key: process.env.OPENCAGE_API_KEY,
+          lat,
+          lon: lng,
+          format: "json",
+          addressdetails: 1,
+        },
+        headers: {
+          "User-Agent": "MyJobApp/1.0 (support@myjobapp.com)",
         },
       }
     );
 
-    const address =
-      response.data.results[0]?.formatted || "Address not found";
-
-    res.json({ address });
-
+    res.json({
+      address: response.data.display_name || "Address not found",
+    });
   } catch (err) {
-    console.error("OpenCage error:", err.message);
     res.status(500).json({ msg: "Failed to fetch address" });
   }
 };
