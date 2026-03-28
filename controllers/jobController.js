@@ -462,6 +462,69 @@ export const getOfflineJobsByDistance = async (req, res) => {
   }
 };
 
+export const updateJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user.id;
+
+    const {
+      profession,
+      description,
+      priceType,
+      expectedPrice,
+      minPrice,
+      maxPrice,
+      currency,
+      languages = [],
+    } = req.body;
+
+    const job = await HirerPost.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ msg: "Job not found" });
+    }
+
+    // 🔒 Only owner can update
+    if (job.hirer.toString() !== userId) {
+      return res.status(403).json({ msg: "Not allowed" });
+    }
+
+    // ✅ Update fields (only if provided)
+    if (profession) job.profession = profession;
+    if (description) job.description = description;
+    if (languages) job.languages = languages;
+
+    // 💰 Update price logic
+    if (priceType === "fixed") {
+      job.price = {
+        type: "fixed",
+        value: expectedPrice,
+        currency,
+      };
+    }
+
+    if (priceType === "negotiable") {
+      job.price = {
+        type: "negotiable",
+        min: minPrice,
+        max: maxPrice,
+        currency,
+      };
+    }
+
+    await job.save();
+
+    res.json({
+      msg: "Job updated successfully",
+      job,
+    });
+
+  } catch (err) {
+    console.error("Update job error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
 export const deleteJob = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -482,64 +545,6 @@ export const deleteJob = async (req, res) => {
 
     res.json({ msg: "Job deleted successfully" });
   } catch (err) {
-    res.status(500).json({ msg: "Server error" });
-  }
-};
-
-export const updateJob = async (req, res) => {
-  try {
-    const { jobId } = req.params;
-    const userId = req.user.id;
-
-    const job = await HirerPost.findById(jobId);
-
-    if (!job) {
-      return res.status(404).json({ msg: "Job not found" });
-    }
-
-    // 🔒 Only owner can edit
-    if (job.hirer.toString() !== userId) {
-      return res.status(403).json({ msg: "Not allowed" });
-    }
-
-    const {
-      profession,
-      description,
-      priceType,
-      expectedPrice,
-      minPrice,
-      maxPrice,
-      currency,
-      preferredTime,
-      addressDetails,
-      location,
-      safetyWarnings,
-    } = req.body;
-
-    // 💰 price rebuild
-    let price = null;
-    if (priceType === "fixed") {
-      price = { type: "fixed", value: expectedPrice, currency };
-    } else if (priceType === "hourly") {
-      price = { type: "hourly", value: expectedPrice, currency };
-    } else if (priceType === "negotiable") {
-      price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
-    }
-
-    // ✅ update fields
-    job.profession = profession || job.profession;
-    job.description = description || job.description;
-    job.price = price;
-    job.preferredTime = preferredTime || job.preferredTime;
-    job.addressDetails = addressDetails || job.addressDetails;
-    job.location = location || job.location;
-    job.safetyWarnings = safetyWarnings || job.safetyWarnings;
-
-    await job.save();
-
-    res.json({ msg: "Job updated", job });
-  } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
