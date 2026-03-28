@@ -52,7 +52,7 @@ router.post(
   updatePostLocation
 );
 
-router.get("/geocode" , authMiddleware,  getLocationFromCoordinates);
+router.get("/geocode" ,  getLocationFromCoordinates);
 
 router.get(
   "/urgent-search",
