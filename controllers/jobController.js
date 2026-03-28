@@ -461,3 +461,27 @@ export const getOfflineJobsByDistance = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+export const deleteJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user.id;
+
+    const job = await HirerPost.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ msg: "Job not found" });
+    }
+
+    // 🔥 only owner can delete
+    if (job.hirer.toString() !== userId) {
+      return res.status(403).json({ msg: "Not allowed" });
+    }
+
+    await job.deleteOne();
+
+    res.json({ msg: "Job deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error" });
+  }
+};
