@@ -401,8 +401,10 @@ export const createOfflinePost = async (req, res) => {
     const professionType = prof?.type || "offline"; // default offline
 
     let price = null;
-    if (priceType === "fixed") price = { type: "fixed", value: expectedPrice, currency };
-    if (priceType === "negotiable") price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+if (priceType === "fixed") price = { type: "fixed", value: Number(expectedPrice), currency };
+else if (priceType === "hourly") price = { type: "hourly", value: Number(expectedPrice), currency };
+else if (priceType === "negotiable") price = { type: "negotiable", min: Number(minPrice), max: Number(maxPrice), currency };
+else if (priceType === "inspect_quote") price = { type: "inspect_quote", currency };
 
     const post = await HirerPost.create({
       hirer: hirerId,
@@ -499,16 +501,15 @@ export const updateJob = async (req, res) => {
     if (location) job.location = location;
     if (media) job.media = media;
 
-    // 🔹 Update price
     if (priceType === "fixed") {
-      job.price = { type: "fixed", value: expectedPrice, currency };
-    } else if (priceType === "hourly") {
-      job.price = { type: "hourly", value: expectedPrice, currency };
-    } else if (priceType === "negotiable") {
-      job.price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
-    } else if (priceType === "inspect_quote") {
-      job.price = { type: "inspect_quote" };
-    }
+  job.price = { type: "fixed", value: Number(expectedPrice), currency };
+} else if (priceType === "hourly") {
+  job.price = { type: "hourly", value: Number(expectedPrice), currency };
+} else if (priceType === "negotiable") {
+  job.price = { type: "negotiable", min: Number(minPrice), max: Number(maxPrice), currency };
+} else if (priceType === "inspect_quote") {
+  job.price = { type: "inspect_quote", currency };
+}
 
     await job.save();
 
