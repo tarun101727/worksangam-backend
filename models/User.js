@@ -113,6 +113,9 @@ credits: {
   type: Number,
   default: 0
 },
+bioTranslated: { type: String, default: null },
+skillsTranslated: { type: String, default: null },
+professionTranslated: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 
