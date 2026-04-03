@@ -31,7 +31,6 @@ getCurrentUser,
   changePasswordWithOld,
   updateEmployeeProfileImage,
   getNearbyOfflineEmployees,
-  translateHandler
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -277,7 +276,5 @@ router.get(
   authMiddleware,
   getNearbyOfflineEmployees
 );
-
-router.post("/translate", translateHandler);
 
 export default router;
