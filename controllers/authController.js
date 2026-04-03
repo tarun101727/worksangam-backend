@@ -1,8 +1,9 @@
+import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
 import bcrypt from 'bcryptjs'; 
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';  
+import dotenv from 'dotenv'; 
 import nodemailer from 'nodemailer'; 
 import twilio from 'twilio';
 import Media from '../models/Media.js'; 
@@ -856,27 +857,30 @@ export const createEmployeeAccount = async (req, res) => {
       age,
       gender,
       profession,
-      professionType, // from frontend
+      professionType,
       skills,
       experience,
       bio,
       languages,
     } = req.body;
 
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
+    // ✅ TRANSLATIONS
+    const translatedBio = await translateText(bio, "te");
+    const translatedProfession = await translateText(profession, "te");
+    const translatedSkills = await translateText(skills, "te");
 
     const updateData = {
       firstName,
       lastName,
       age: Number(age),
       gender,
+      profession,
+      professionTranslated: translatedProfession, // ✅ NEW
       skills,
+      skillsTranslated: translatedSkills, // ✅ NEW
       experience: Number(experience),
       bio,
+      bioTranslated: translatedBio, // ✅ NEW
       languages: languages.split(",").map((l) => l.trim()),
       avatarInitial: firstName.charAt(0).toUpperCase(),
       avatarColor: getAvatarColor(firstName),
@@ -884,21 +888,6 @@ export const createEmployeeAccount = async (req, res) => {
       isGuest: false,
       onboardingStep: "completed",
     };
-
-    // Only update profession and professionType if profession changed
-    if (profession && profession !== user.profession) {
-      updateData.profession = profession;
-      updateData.professionType = professionType || "offline"; // fallback if frontend sends nothing
-    }
-
-    if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-  });
-
-  updateData.profileImage = result.secure_url;
-}
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -1398,3 +1387,20 @@ export const getNearbyOfflineEmployees = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 }
+
+export const translateHandler = async (req, res) => {
+  try {
+    const { text, target } = req.body;
+
+    if (!text || !target) {
+      return res.status(400).json({ msg: "Text and target language are required" });
+    }
+
+    const translated = await translateText(text, target);
+
+    res.json({ translated });
+  } catch (err) {
+    console.error("Translation Error:", err);
+    res.status(500).json({ msg: "Translation failed" });
+  }
+};
