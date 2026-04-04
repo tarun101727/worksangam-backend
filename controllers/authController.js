@@ -1400,7 +1400,6 @@ export const getNearbyOfflineEmployees = async (req, res) => {
   }
 }
 
-
 export const translateHandler = async (req, res) => {
   try {
     const { text, target } = req.body;
@@ -1409,24 +1408,9 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target language are required" });
     }
 
-    // 🔥 Get main translation
-    const mainTranslation = await translateText(text, target);
+    const translated = await translateText(text, target);
 
-    // 🔥 Fake alternatives (you can improve later using dictionary APIs)
-    const alternatives = [
-      mainTranslation,
-      text, // original
-      text.toLowerCase(),
-      text.toUpperCase(),
-    ];
-
-    // Remove duplicates
-    const uniqueAlternatives = [...new Set(alternatives)];
-
-    res.json({
-      translated: mainTranslation,
-      alternatives: uniqueAlternatives,
-    });
+    res.json({ translated });
   } catch (err) {
     console.error("Translation Error:", err);
     res.status(500).json({ msg: "Translation failed" });
