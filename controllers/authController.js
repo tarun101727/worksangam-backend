@@ -1412,9 +1412,7 @@ export const translateHandler = async (req, res) => {
 
     res.json({ translated });
   } catch (err) {
-    console.error("🔥 FULL TRANSLATION ERROR:", err);
-    res.status(500).json({
-      msg: err.message || "Translation failed",
-    });
+    console.error("Translation Error:", err);
+    res.status(500).json({ msg: "Translation failed" });
   }
 };
