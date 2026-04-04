@@ -1,17 +1,12 @@
 import { Translate } from "@google-cloud/translate/build/src/v2/index.js";
 
 const translate = new Translate({
-  key: process.env.GOOGLE_TRANSLATE_API_KEY, // or use credentials file
+  key: process.env.GOOGLE_API_KEY,
 });
 
-export const translateText = async (text, targetLang) => {
-  try {
-    if (!text) return text;
+export const translateText = async (text, target = "te") => {
+  if (!text) return "";
 
-    const [translation] = await translate.translate(text, targetLang);
-    return translation;
-  } catch (err) {
-    console.error("Translation error:", err.message);
-    return text; // fallback
-  }
+  const [translation] = await translate.translate(text, target);
+  return translation;
 };
