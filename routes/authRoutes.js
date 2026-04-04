@@ -31,6 +31,7 @@ getCurrentUser,
   changePasswordWithOld,
   updateEmployeeProfileImage,
   getNearbyOfflineEmployees,
+  translateHandler,
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -53,6 +54,8 @@ function adminSecretMiddleware(req, res, next) {
   }
   next();
 }
+
+router.post("/translate", translateHandler);
 
 router.post('/guest', createGuestUser);
 
