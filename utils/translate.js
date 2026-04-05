@@ -1,13 +1,19 @@
-import pkg from "@google-cloud/translate";
-const { v2 } = pkg;
+import { TranslationServiceClient } from "@google-cloud/translate";
 
-const translate = new v2.Translate({
-  key: process.env.GOOGLE_API_KEY,
-});
+const client = new TranslationServiceClient({ key: process.env.GOOGLE_API_KEY });
 
-export const translateText = async (text, target = "te") => {
+export const translateText = async (text, targetLanguageCode = "te") => { 
   if (!text) return "";
 
-  const [translation] = await translate.translate(text, target);
-  return translation;
+  const request = {
+    parent: `projects/${process.env.GOOGLE_PROJECT_ID}/locations/global`,
+    contents: [text],
+    mimeType: "text/plain",
+    sourceLanguageCode: "en",
+    targetLanguageCode,  // e.g., "te" for Telugu
+    model: "nmt",        // optional
+  };
+
+  const [response] = await client.translateText(request);
+  return response.translations[0].translatedText;
 };
