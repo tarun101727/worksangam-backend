@@ -1402,13 +1402,13 @@ export const getNearbyOfflineEmployees = async (req, res) => {
 
 export const translateHandler = async (req, res) => {
   try {
-    const { text, target } = req.body;
+    const { text, target, transliterate } = req.body;
 
     if (!text || !target) {
-      return res.status(400).json({ msg: "Text and target language are required" });
+      return res.status(400).json({ msg: "Text and target language required" });
     }
 
-    const translated = await translateText(text, target);
+    const translated = await translateText(text, target, "en", transliterate);
 
     res.json({ translated });
   } catch (err) {
