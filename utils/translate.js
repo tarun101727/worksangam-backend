@@ -2,7 +2,7 @@ import { TranslationServiceClient } from "@google-cloud/translate";
 
 const client = new TranslationServiceClient({ key: process.env.GOOGLE_API_KEY });
 
-export const transliterateText = async (text, targetLanguageCode = "te") => {
+export const translateText  = async (text, targetLanguageCode = "te") => {
   if (!text) return "";
 
   const request = {
@@ -14,6 +14,6 @@ export const transliterateText = async (text, targetLanguageCode = "te") => {
     model: "projects/google/locations/global/models/online_transliteration",
   };
 
-  const [response] = await client.transliterateText(request);
+  const [response] = await client.translateText (request);
   return response.translations[0].translatedText;
 };
