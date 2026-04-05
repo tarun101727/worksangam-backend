@@ -4,7 +4,7 @@ const client = new TranslationServiceClient({ key: process.env.GOOGLE_API_KEY })
 
 export const transliterateText = async (text, targetLanguageCode = "te") => {
   if (!text) return "";
-
+ 
   const request = {
     parent: `projects/${process.env.GOOGLE_PROJECT_ID}/locations/global`,
     contents: [text],
