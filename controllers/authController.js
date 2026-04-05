@@ -1400,17 +1400,19 @@ export const getNearbyOfflineEmployees = async (req, res) => {
   }
 }
 
-export const transliterateHandler = async (req, res) => {
+export const translateHandler = async (req, res) => {
   try {
     const { text, target } = req.body;
 
-    if (!text || !target) return res.status(400).json({ msg: "Text and target required" });
+    if (!text || !target) {
+      return res.status(400).json({ msg: "Text and target language are required" });
+    }
 
-    const transliterated = await transliterateText(text, target);
+    const translated = await translateText(text, target);
 
-    res.json({ transliterated });
+    res.json({ translated });
   } catch (err) {
-    console.error("Transliteration Error:", err);
-    res.status(500).json({ msg: "Failed" });
+    console.error("Translation Error:", err);
+    res.status(500).json({ msg: "Translation failed" });
   }
 };
