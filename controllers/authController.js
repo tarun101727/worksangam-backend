@@ -1,4 +1,4 @@
-import { transliterateText } from "../utils/translate.js";
+import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
 import bcrypt from 'bcryptjs'; 
@@ -1400,15 +1400,19 @@ export const getNearbyOfflineEmployees = async (req, res) => {
   }
 }
 
-export const transliterateHandler = async (req, res) => {
+export const translateHandler = async (req, res) => {
   try {
     const { text, target } = req.body;
-    if (!text || !target) return res.status(400).json({ msg: "Text and target required" });
 
-    const transliterated = await transliterateText(text, target);
-    res.json({ transliterated });
+    if (!text || !target) {
+      return res.status(400).json({ msg: "Text and target language are required" });
+    }
+
+    const translated = await translateText(text, target);
+
+    res.json({ translated });
   } catch (err) {
-    console.error("Transliteration error:", err);
-    res.status(500).json({ msg: "Transliteration failed" });
+    console.error("Translation Error:", err);
+    res.status(500).json({ msg: "Translation failed" });
   }
 };
