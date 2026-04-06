@@ -29,18 +29,24 @@ export const addLanguageTranslations = async (req, res) => {
   }
 };
 
-/* Get translations by language code */
 export const getTranslations = async (req, res) => {
   try {
     const { lang } = req.params;
 
-    const translations = await Translate.findOne({ languageCode: lang });
+    // Fetch all documents for this language
+    const docs = await Translate.find({ languageCode: lang });
 
-    if (!translations) {
+    if (!docs || docs.length === 0) {
       return res.status(404).json({ msg: "Language not found" });
     }
 
-    res.json(translations.translations);
+    // Combine key/value into a single object
+    const translations = {};
+    docs.forEach(doc => {
+      translations[doc.key] = doc.value;
+    });
+
+    res.json(translations);
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
