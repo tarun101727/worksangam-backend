@@ -1,3 +1,4 @@
+
 import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
@@ -220,16 +221,13 @@ export const createAccount = async (req, res) => {
     const userId = req.user.id;
     const { firstName, lastName, age, gender } = req.body;
 
-    const first = firstName.trim();
-const last = lastName.trim();
+    if (!NAME_REGEX.test(firstName)) {
+      return res.status(400).json({ msg: "Invalid first name" });
+    }
 
-if (!NAME_REGEX.test(first)) {
-  return res.status(400).json({ msg: "Invalid first name" });
-}
-
-if (!NAME_REGEX.test(last)) {
-  return res.status(400).json({ msg: "Invalid last name" });
-}
+    if (!NAME_REGEX.test(lastName)) {
+      return res.status(400).json({ msg: "Invalid last name" });
+    }
 
     const ageNum = Number(age);
     if (!Number.isInteger(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
