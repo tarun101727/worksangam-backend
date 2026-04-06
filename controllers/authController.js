@@ -15,7 +15,7 @@ import cloudinary from '../config/cloudinary.js';
 
 
 
-const NAME_REGEX = /^[\p{L}]{2,30}$/u;
+const NAME_REGEX = /^[\p{L} .'-]{2,50}$/u;
 const MIN_AGE = 18;
 const MAX_AGE = 100;
 const ALLOWED_GENDERS = ["Male", "Female", "Other"];
@@ -218,7 +218,10 @@ export const verifyOtp = async (req, res) => {
 export const createAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { firstName, lastName, age, gender } = req.body;
+    let { firstName, lastName, age, gender } = req.body;
+
+    firstName = firstName.trim();
+    lastName = lastName.trim();
 
     if (!NAME_REGEX.test(firstName)) {
       return res.status(400).json({ msg: "Invalid first name" });
