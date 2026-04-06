@@ -29,24 +29,15 @@ export const addLanguageTranslations = async (req, res) => {
   }
 };
 
+// controllers/translateController.js
 export const getTranslations = async (req, res) => {
   try {
     const { lang } = req.params;
+    const doc = await Translate.findOne({ languageCode: lang });
 
-    // Fetch all documents for this language
-    const docs = await Translate.find({ languageCode: lang });
+    if (!doc) return res.status(404).json({ msg: "Language not found" });
 
-    if (!docs || docs.length === 0) {
-      return res.status(404).json({ msg: "Language not found" });
-    }
-
-    // Combine key/value into a single object
-    const translations = {};
-    docs.forEach(doc => {
-      translations[doc.key] = doc.value;
-    });
-
-    res.json(translations);
+    res.json(doc.translations); // ✅ return the translations object directly
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
