@@ -220,13 +220,16 @@ export const createAccount = async (req, res) => {
     const userId = req.user.id;
     const { firstName, lastName, age, gender } = req.body;
 
-    if (!NAME_REGEX.test(firstName)) {
-      return res.status(400).json({ msg: "Invalid first name" });
-    }
+    const first = firstName.trim();
+const last = lastName.trim();
 
-    if (!NAME_REGEX.test(lastName)) {
-      return res.status(400).json({ msg: "Invalid last name" });
-    }
+if (!NAME_REGEX.test(first)) {
+  return res.status(400).json({ msg: "Invalid first name" });
+}
+
+if (!NAME_REGEX.test(last)) {
+  return res.status(400).json({ msg: "Invalid last name" });
+}
 
     const ageNum = Number(age);
     if (!Number.isInteger(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
@@ -1402,13 +1405,13 @@ export const getNearbyOfflineEmployees = async (req, res) => {
 
 export const translateHandler = async (req, res) => {
   try {
-    const { text, target, transliterate } = req.body;
+    const { text, target } = req.body;
 
     if (!text || !target) {
-      return res.status(400).json({ msg: "Text and target language required" });
+      return res.status(400).json({ msg: "Text and target language are required" });
     }
 
-    const translated = await translateText(text, target, "en", transliterate);
+    const translated = await translateText(text, target);
 
     res.json({ translated });
   } catch (err) {
