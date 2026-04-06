@@ -1,4 +1,3 @@
-
 import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
@@ -16,7 +15,7 @@ import cloudinary from '../config/cloudinary.js';
 
 
 
-const NAME_REGEX = /^[A-Za-z]{2,30}$/;
+const NAME_REGEX = /^[\p{L}]{2,30}$/u;
 const MIN_AGE = 18;
 const MAX_AGE = 100;
 const ALLOWED_GENDERS = ["Male", "Female", "Other"];
