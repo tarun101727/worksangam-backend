@@ -29,6 +29,7 @@ export const addLanguageTranslations = async (req, res) => {
   }
 };
 
+// controllers/translateController.js
 export const getTranslations = async (req, res) => {
   try {
     const { lang } = req.params;
@@ -36,10 +37,7 @@ export const getTranslations = async (req, res) => {
 
     if (!doc) return res.status(404).json({ msg: "Language not found" });
 
-    // ✅ Add this line
-    res.setHeader("Content-Type", "application/json");
-
-    res.status(200).json(doc.translations);
+    res.json(doc.translations); // ✅ return the translations object directly
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
