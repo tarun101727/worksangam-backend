@@ -37,7 +37,9 @@ export const getTranslations = async (req, res) => {
 
     if (!doc) return res.status(404).json({ msg: "Language not found" });
 
-    res.json(doc.translations); // ✅ return the translations object directly
+    res.json({
+  translation: doc.translations // ✅ wrap in "translation" key
+});
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
