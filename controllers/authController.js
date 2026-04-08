@@ -1058,24 +1058,32 @@ export const updateHirerAccount = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const { firstName, lastName, age, gender } = req.body;
+    // ✅ ADD genderLabel
+    const { firstName, lastName, age, gender, genderLabel } = req.body;
 
     const updateData = {};
 
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (age) updateData.age = Number(age);
-    if (gender) updateData.gender = gender;
 
+    // ✅ UPDATE BOTH gender + genderLabel
+    if (gender) {
+      updateData.gender = gender;                 // English (logic safe)
+      updateData.genderLabel = genderLabel;       // Translated (UI)
+    }
+
+    // ✅ IMAGE UPLOAD
     if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-  });
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profile_images",
+        public_id: `user_${userId}_${Date.now()}`,
+      });
 
-  updateData.profileImage = result.secure_url;
-}
+      updateData.profileImage = result.secure_url;
+    }
 
+    // ✅ AVATAR UPDATE
     if (firstName) {
       updateData.avatarInitial = firstName.charAt(0).toUpperCase();
       updateData.avatarColor = getAvatarColor(firstName);
