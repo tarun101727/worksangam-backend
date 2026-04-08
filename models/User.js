@@ -30,6 +30,10 @@ const UserSchema = new mongoose.Schema({
     enum: ["Male", "Female", "Other"],
     default: null,
   },
+  genderLabel: {
+  type: String,
+  default: null,
+},
 
   profession: { type: String, default: null },
 
