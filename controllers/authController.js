@@ -1,7 +1,7 @@
 import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
-import bcrypt from 'bcryptjs'; 
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv'; 
 import nodemailer from 'nodemailer'; 
