@@ -215,7 +215,7 @@ export const verifyOtp = async (req, res) => {
 export const createAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { firstName, lastName, age, gender } = req.body;
+    const { firstName, lastName, age, gender ,genderLabel  } = req.body;
 
     if (!firstName || !firstName.trim()) {
   return res.status(400).json({ msg: "First name required" });
@@ -255,6 +255,7 @@ if (req.file) {
         lastName,
         age: ageNum,
         gender,
+        genderLabel,
         profileImage,
         avatarInitial,
         avatarColor,
@@ -853,6 +854,7 @@ export const createEmployeeAccount = async (req, res) => {
       lastName,
       age,
       gender,
+      genderLabel,
       profession,
       professionType, // from frontend
       skills,
@@ -872,6 +874,7 @@ export const createEmployeeAccount = async (req, res) => {
       lastName,
       age: Number(age),
       gender,
+      genderLabel,
       skills,
       experience: Number(experience),
       bio,
