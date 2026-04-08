@@ -1,7 +1,7 @@
 import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs'; 
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv'; 
 import nodemailer from 'nodemailer'; 
@@ -340,9 +340,9 @@ export const getCurrentUser = async (req, res) => {
       return res.status(401).json({ msg: 'Unauthorized' });
     }
 
-    const user = await User.findById(userId).select(
+  const user = await User.findById(userId).select(
   `
-  firstName lastName age gender email role
+  firstName lastName age gender genderLabel email role
   profession skills experience languages bio
   profileImage
   avatarInitial avatarColor
