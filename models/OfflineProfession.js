@@ -6,6 +6,13 @@ const OfflineProfessionSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true
+  },
+
+  translations: {
+    te: { type: String }, // Telugu
+    hi: { type: String }, // Hindi
+    ta: { type: String }, // Tamil
+    kn: { type: String }, // Kannada
   }
 });
 
