@@ -1067,12 +1067,12 @@ export const updateHirerAccount = async (req, res) => {
     if (lastName) updateData.lastName = lastName;
     if (age) updateData.age = Number(age);
 
-   // ✅ update independently
-if (gender) {
+  // ✅ correct condition (important fix)
+if (gender !== undefined) {
   updateData.gender = gender;
 }
 
-if (genderLabel) {
+if (genderLabel !== undefined) {
   updateData.genderLabel = genderLabel;
 }
 
