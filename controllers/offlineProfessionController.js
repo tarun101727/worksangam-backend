@@ -2,13 +2,19 @@ import OfflineProfession from "../models/OfflineProfession.js";
 
 export const getOfflineProfessions = async (req, res) => {
   try {
-    const professions = await OfflineProfession
-      .find({}, { name: 1 })
-      .sort({ name: 1 });
+    const lang = req.query.lang || "en";
 
-    res.json({
-      professions
-    });
+    const professions = await OfflineProfession.find({}).sort({ name: 1 });
+
+    const formatted = professions.map((p) => ({
+      _id: p._id,
+      name: lang === "en"
+        ? p.name
+        : p.translations?.[lang] || p.name,
+      originalName: p.name // optional (for better search)
+    }));
+
+    res.json({ professions: formatted });
 
   } catch (err) {
     console.error("Offline professions error:", err);
