@@ -2,13 +2,21 @@ import OnlineProfession from "../models/OnlineProfession.js";
 
 export const getOnlineProfessions = async (req, res) => {
   try {
+    const lang = req.query.lang || "en";
+
     const professions = await OnlineProfession
-      .find({}, { name: 1 })   // return name + _id
+      .find({})
       .sort({ name: 1 });
 
-    res.json({
-      professions
-    });
+    const formatted = professions.map((p) => ({
+      _id: p._id,
+      name: lang === "en"
+        ? p.name
+        : p.translations?.[lang] || p.name,
+      originalName: p.name // for search support
+    }));
+
+    res.json({ professions: formatted });
 
   } catch (err) {
     console.error("Online professions error:", err);
