@@ -6,6 +6,13 @@ const OnlineProfessionSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true
+  },
+
+  translations: {
+    te: { type: String }, // Telugu
+    hi: { type: String }, // Hindi (optional)
+    ta: { type: String },
+    kn: { type: String }
   }
 });
 
