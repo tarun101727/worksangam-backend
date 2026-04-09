@@ -1067,11 +1067,14 @@ export const updateHirerAccount = async (req, res) => {
     if (lastName) updateData.lastName = lastName;
     if (age) updateData.age = Number(age);
 
-    // ✅ UPDATE BOTH gender + genderLabel
-    if (gender) {
-      updateData.gender = gender;                 // English (logic safe)
-      updateData.genderLabel = genderLabel;       // Translated (UI)
-    }
+   // ✅ update independently
+if (gender) {
+  updateData.gender = gender;
+}
+
+if (genderLabel) {
+  updateData.genderLabel = genderLabel;
+}
 
     // ✅ IMAGE UPLOAD
     if (req.file) {
