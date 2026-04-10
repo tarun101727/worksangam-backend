@@ -12,7 +12,6 @@ export const getLanguages = async (req, res) => {
 
     const languages = await Language.find(query)
       .sort({ name: 1 })
-      .limit(20); // limit suggestions
 
     res.json(languages);
   } catch (err) {
