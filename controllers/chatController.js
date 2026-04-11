@@ -64,8 +64,6 @@ export const getMessages = async (req, res) => {
 
 };
 
-
-
 /* send message */
 
 export const sendMessage = async (req, res) => {
@@ -83,8 +81,7 @@ export const sendMessage = async (req, res) => {
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
 
-// Emit message to chat participants
-io.to(req.params.chatId).emit("receive-message", {
+io.to(req.params.chatId).except(req.user.id).emit("receive-message", {
   ...populated._doc,
   message
 });
