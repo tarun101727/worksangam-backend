@@ -64,6 +64,8 @@ export const getMessages = async (req, res) => {
 
 };
 
+
+
 /* send message */
 
 export const sendMessage = async (req, res) => {
@@ -81,7 +83,8 @@ export const sendMessage = async (req, res) => {
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
 
-io.to(req.params.chatId).except(req.user.id).emit("receive-message", {
+// emit to everyone except sender to avoid duplicate in sender's UI
+socket.to(req.params.chatId).emit("receive-message", {
   ...populated._doc,
   message
 });
@@ -140,10 +143,11 @@ export const sendMedia = async (req, res) => {
 
     const message = caption;
 
-    io.to(req.params.chatId).except(req.user.id).emit("receive-message", {
-  ...populated._doc,
-  message
-});
+    // socket emit
+    io.to(req.params.chatId).emit("receive-message", {
+      ...populated._doc,
+      message
+    });
 
     res.json(populated);
 
