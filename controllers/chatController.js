@@ -140,11 +140,10 @@ export const sendMedia = async (req, res) => {
 
     const message = caption;
 
-    // socket emit
-    io.to(req.params.chatId).emit("receive-message", {
-      ...populated._doc,
-      message
-    });
+    io.to(req.params.chatId).except(req.user.id).emit("receive-message", {
+  ...populated._doc,
+  message
+});
 
     res.json(populated);
 
