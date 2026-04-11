@@ -83,8 +83,8 @@ export const sendMessage = async (req, res) => {
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
 
-// Emit message to chat participants
-io.to(req.params.chatId).emit("receive-message", {
+// Only emit to others, sender already has temp message
+socket.to(req.params.chatId).emit("receive-message", {
   ...populated._doc,
   message
 });
@@ -143,11 +143,10 @@ export const sendMedia = async (req, res) => {
 
     const message = caption;
 
-    // socket emit
-    io.to(req.params.chatId).emit("receive-message", {
-      ...populated._doc,
-      message
-    });
+    socket.to(req.params.chatId).emit("receive-message", {
+  ...populated._doc,
+  message: caption
+});
 
     res.json(populated);
 
