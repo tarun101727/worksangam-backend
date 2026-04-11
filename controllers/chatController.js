@@ -83,8 +83,8 @@ export const sendMessage = async (req, res) => {
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
 
-// emit to everyone except sender to avoid duplicate in sender's UI
-socket.to(req.params.chatId).emit("receive-message", {
+// Emit message to chat participants
+io.to(req.params.chatId).emit("receive-message", {
   ...populated._doc,
   message
 });
