@@ -14,6 +14,6 @@ const OnlineProfessionSchema = new mongoose.Schema({
     ta: { type: String },
     kn: { type: String }
   }
-});
+}, { collection: "online_professions" });
 
 export default mongoose.model("OnlineProfession", OnlineProfessionSchema);
