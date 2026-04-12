@@ -13,12 +13,12 @@ export const getEmployeesByType = async (req, res) => {
       return res.status(400).json({ msg: "Invalid professionType" });
     }
 
-    // ✅ Only filter by professionType, not availability
     const query = {
-      role: "employee",
-      professionType,           // online/offline
-      onboardingStep: "completed",
-    };
+  role: "employee",
+  professionType,           // online/offline
+  onboardingStep: "completed",
+  isAvailable: status === "online" ? true : false, 
+};
 
     if (profession) {
       query.profession = { $regex: new RegExp(`^${profession}$`, "i") };
