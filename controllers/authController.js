@@ -1419,18 +1419,22 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target required" });
     }
 
-    // 🔍 Find language document
     const langDoc = await Translate.findOne({ languageCode: target });
 
     if (!langDoc) {
       return res.status(404).json({ msg: "Language not found" });
     }
 
-    // 🔍 Find translation from DB
-    const translated = langDoc.translations[text];
+    // ✅ Normalize text
+    const normalizedText = text.trim().toLowerCase();
+
+    // ✅ Case-insensitive lookup
+    const translated = Object.entries(langDoc.translations).find(
+      ([key]) => key.toLowerCase() === normalizedText
+    )?.[1];
 
     res.json({
-      translated: translated || text, // fallback
+      translated: translated || text,
     });
 
   } catch (err) {
