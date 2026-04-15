@@ -1429,21 +1429,21 @@ export const translateHandler = async (req, res) => {
 
     const cleanText = text.trim();
 
-    const translatedText = cleanText
-      .split(/(\s+|[,.!?])/)
-      .map(word => {
-        const key = word.trim().toLowerCase();
-        return dict[key] || word;
-      })
-      .join("");
+    // ✅ FULL MATCH FIRST
+    let translatedText =
+      dict[cleanText] ||
+      dict[cleanText.toLowerCase()];
 
-    console.log("TEXT:", text);
-    console.log("TARGET:", target);
-    console.log("TRANSLATED:", translatedText);
+    // ✅ FALLBACK
+    if (!translatedText) {
+      const words = cleanText.split(/\s+/);
 
-    res.json({
-      translated: translatedText || text,
-    });
+      translatedText = words
+        .map(word => dict[word] || dict[word.toLowerCase()] || word)
+        .join(" ");
+    }
+
+    res.json({ translated: translatedText });
 
   } catch (err) {
     console.error("Translation Error:", err);
