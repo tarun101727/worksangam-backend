@@ -283,7 +283,6 @@ router.get(
 
 router.put(
   "/update-language",
-  authMiddleware,
   updateUserLanguage
 );
 
