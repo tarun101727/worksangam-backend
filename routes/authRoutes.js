@@ -32,6 +32,7 @@ getCurrentUser,
   updateEmployeeProfileImage,
   getNearbyOfflineEmployees,
   translateHandler,
+  updateUserLanguage,
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -278,6 +279,12 @@ router.get(
   "/employees/nearby-offline",
   authMiddleware,
   getNearbyOfflineEmployees
+);
+
+router.put(
+  "/update-language",
+  authMiddleware,
+  updateUserLanguage
 );
 
 export default router;
