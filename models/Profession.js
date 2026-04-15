@@ -15,7 +15,15 @@ const ProfessionSchema = new mongoose.Schema({
     type: String,
     enum: ["online", "offline"],
     default: "offline"
+  },
+
+    // ✅ ADD THIS BLOCK (VERY IMPORTANT)
+  translations: {
+    type: Map,
+    of: String,
+    default: {}
   }
+
 });
 
 export default mongoose.model("Profession", ProfessionSchema);
