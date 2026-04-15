@@ -191,6 +191,7 @@ export const verifyOtp = async (req, res) => {
       isGuest: true,
       onboardingStep:
         role === 'employee' ? 'employee_profile' : 'hirer_profile',
+        preferredLanguage: req.body.preferredLanguage || "en",
     });
 
     await OTP.deleteMany({ email: normalizedEmail });
