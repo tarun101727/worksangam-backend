@@ -56,6 +56,11 @@ function adminSecretMiddleware(req, res, next) {
   next();
 }
 
+router.put(
+  "/update-language",
+  updateUserLanguage
+);
+
 router.post("/translate", translateHandler);
 
 router.post('/guest', createGuestUser);
@@ -279,11 +284,6 @@ router.get(
   "/employees/nearby-offline",
   authMiddleware,
   getNearbyOfflineEmployees
-);
-
-router.put(
-  "/update-language",
-  updateUserLanguage
 );
 
 export default router;
