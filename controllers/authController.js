@@ -1,4 +1,4 @@
-import Translate from "../models/Translate.js";
+import { translateText } from "../utils/translate.js";
 import postmark from "postmark";
 import User from '../models/User.js';  
 import bcrypt from 'bcryptjs'; 
@@ -1416,23 +1416,12 @@ export const translateHandler = async (req, res) => {
     const { text, target } = req.body;
 
     if (!text || !target) {
-      return res.status(400).json({ msg: "Text and target language required" });
+      return res.status(400).json({ msg: "Text and target language are required" });
     }
 
-    // 🔍 Get language from MongoDB
-    const langData = await Translate.findOne({ languageCode: target });
+    const translated = await translateText(text, target);
 
-    if (!langData) {
-      return res.status(404).json({ msg: "Language not found" });
-    }
-
-    // 🔥 Translate using DB
-    const translated = langData.translations[text];
-
-    res.json({
-      translated: translated || text // fallback
-    });
-
+    res.json({ translated });
   } catch (err) {
     console.error("Translation Error:", err);
     res.status(500).json({ msg: "Translation failed" });
