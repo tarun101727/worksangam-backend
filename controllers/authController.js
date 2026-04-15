@@ -1438,3 +1438,29 @@ export const translateHandler = async (req, res) => {
     res.status(500).json({ msg: "Translation failed" });
   }
 };
+
+
+export const updateUserLanguage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { language } = req.body;
+
+    if (!language) {
+      return res.status(400).json({ msg: "Language required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { preferredLanguage: language },
+      { new: true }
+    );
+
+    res.json({
+      msg: "Language updated",
+      preferredLanguage: user.preferredLanguage,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
