@@ -58,6 +58,7 @@ function adminSecretMiddleware(req, res, next) {
 
 router.put(
   "/update-language",
+  authMiddleware,   // ✅ ADD THIS
   updateUserLanguage
 );
 
