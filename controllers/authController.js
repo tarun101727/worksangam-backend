@@ -1419,31 +1419,19 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target required" });
     }
 
+    // 🔍 Find language document
     const langDoc = await Translate.findOne({ languageCode: target });
 
     if (!langDoc) {
       return res.status(404).json({ msg: "Language not found" });
     }
 
-    const dict = langDoc.translations;
+    // 🔍 Find translation from DB
+    const translated = langDoc.translations[text];
 
-    const cleanText = text.trim();
-
-    // ✅ FULL MATCH FIRST
-    let translatedText =
-      dict[cleanText] ||
-      dict[cleanText.toLowerCase()];
-
-    // ✅ FALLBACK
-    if (!translatedText) {
-      const words = cleanText.split(/\s+/);
-
-      translatedText = words
-        .map(word => dict[word] || dict[word.toLowerCase()] || word)
-        .join(" ");
-    }
-
-    res.json({ translated: translatedText });
+    res.json({
+      translated: translated || text, // fallback
+    });
 
   } catch (err) {
     console.error("Translation Error:", err);
