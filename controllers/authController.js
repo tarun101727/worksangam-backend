@@ -1437,15 +1437,16 @@ export const translateHandler = async (req, res) => {
         break;
       }
 
-      // check all translations dynamically
-      for (const lang in prof.translations) {
-        if (
-          prof.translations[lang]?.toLowerCase() === normalizedText
-        ) {
-          foundProfession = prof;
-          break;
-        }
-      }
+      if (prof.translations) {
+  for (const lang in prof.translations) {
+    if (
+      prof.translations[lang]?.toLowerCase() === normalizedText
+    ) {
+      foundProfession = prof;
+      break;
+    }
+  }
+}
 
       if (foundProfession) break;
     }
