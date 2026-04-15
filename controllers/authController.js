@@ -12,6 +12,9 @@ import { io } from "../socket.js";
 import { validateEmail } from "../utils/emailValidator.js";
 import DeleteReason from "../models/DeleteReason.js";
 import cloudinary from '../config/cloudinary.js';
+import Profession from "../models/Profession.js" 
+
+
 
 const MIN_AGE = 18;
 const MAX_AGE = 100;
@@ -1419,26 +1422,43 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target required" });
     }
 
-    const langDoc = await Translate.findOne({ languageCode: target });
-
-    if (!langDoc) {
-      return res.status(404).json({ msg: "Language not found" });
-    }
-
-    // ✅ NORMALIZE TEXT (FIX MAIN BUG)
     const normalizedText = text.trim().toLowerCase();
 
-    const translationsMap = Object.fromEntries(
-      Object.entries(langDoc.translations).map(([key, value]) => [
-        key.trim().toLowerCase(),
-        value,
-      ])
-    );
+    // 🔥 STEP 1: Get ALL professions (small dataset → OK)
+    const professions = await Profession.find({});
 
-    const translated = translationsMap[normalizedText];
+    let foundProfession = null;
 
-    res.json({
-      translated: translated || text, // fallback
+    // 🔥 STEP 2: Search in ALL languages dynamically
+    for (const prof of professions) {
+      // check name
+      if (prof.name?.toLowerCase() === normalizedText) {
+        foundProfession = prof;
+        break;
+      }
+
+      // check all translations dynamically
+      for (const lang in prof.translations) {
+        if (
+          prof.translations[lang]?.toLowerCase() === normalizedText
+        ) {
+          foundProfession = prof;
+          break;
+        }
+      }
+
+      if (foundProfession) break;
+    }
+
+    // 🔥 STEP 3: Return target language
+    if (foundProfession && foundProfession.translations[target]) {
+      return res.json({
+        translated: foundProfession.translations[target],
+      });
+    }
+
+    return res.json({
+      translated: text, // fallback
     });
 
   } catch (err) {
