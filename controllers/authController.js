@@ -1419,7 +1419,6 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target required" });
     }
 
-    // 🔍 Get language dictionary
     const langDoc = await Translate.findOne({ languageCode: target });
 
     if (!langDoc) {
@@ -1428,19 +1427,22 @@ export const translateHandler = async (req, res) => {
 
     const dict = langDoc.translations;
 
-    // ✅ CLEAN TEXT
     const cleanText = text.trim();
 
-    // ✅ SPLIT INTO WORDS
-    const words = cleanText.split(/\s+/);
+    const translatedText = cleanText
+      .split(/(\s+|[,.!?])/)
+      .map(word => {
+        const key = word.trim().toLowerCase();
+        return dict[key] || word;
+      })
+      .join("");
 
-    // ✅ TRANSLATE WORD BY WORD
-    const translatedText = words
-      .map(word => dict[word] || dict[word.toLowerCase()] || word)
-      .join(" ");
+    console.log("TEXT:", text);
+    console.log("TARGET:", target);
+    console.log("TRANSLATED:", translatedText);
 
     res.json({
-      translated: translatedText,
+      translated: translatedText || text,
     });
 
   } catch (err) {
