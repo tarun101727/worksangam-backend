@@ -1419,15 +1419,23 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target required" });
     }
 
-    // 🔍 Find language document
     const langDoc = await Translate.findOne({ languageCode: target });
 
     if (!langDoc) {
       return res.status(404).json({ msg: "Language not found" });
     }
 
-    // 🔍 Find translation from DB
-    const translated = langDoc.translations[text];
+    // ✅ NORMALIZE TEXT (FIX MAIN BUG)
+    const normalizedText = text.trim().toLowerCase();
+
+    const translationsMap = Object.fromEntries(
+      Object.entries(langDoc.translations).map(([key, value]) => [
+        key.trim().toLowerCase(),
+        value,
+      ])
+    );
+
+    const translated = translationsMap[normalizedText];
 
     res.json({
       translated: translated || text, // fallback
