@@ -1424,46 +1424,48 @@ export const translateHandler = async (req, res) => {
 
     const normalizedText = text.trim().toLowerCase();
 
-    // 🔥 STEP 1: Get ALL professions (small dataset → OK)
     const professions = await Profession.find({});
 
     let foundProfession = null;
 
-    // 🔥 STEP 2: Search in ALL languages dynamically
     for (const prof of professions) {
-      // check name
+
+      // ✅ check name
       if (prof.name?.toLowerCase() === normalizedText) {
         foundProfession = prof;
         break;
       }
 
-      if (prof.translations) {
-  for (const lang in prof.translations) {
-    if (
-      prof.translations[lang]?.toLowerCase() === normalizedText
-    ) {
-      foundProfession = prof;
-      break;
-    }
-  }
-}
+      // ✅ FIX: Map access using .get()
+      if (prof.translations && prof.translations.size > 0) {
+
+        for (const [lang, value] of prof.translations.entries()) {
+
+          if (value && value.toLowerCase() === normalizedText) {
+            foundProfession = prof;
+            break;
+          }
+
+        }
+
+      }
 
       if (foundProfession) break;
     }
 
-    // 🔥 STEP 3: Return target language
-    if (foundProfession && foundProfession.translations[target]) {
+    // ✅ FIX: Map access using .get()
+    if (foundProfession && foundProfession.translations?.get(target)) {
       return res.json({
-        translated: foundProfession.translations[target],
+        translated: foundProfession.translations.get(target),
       });
     }
 
     return res.json({
-      translated: text, // fallback
+      translated: text,
     });
 
   } catch (err) {
-    console.error("Translation Error:", err);
+    console.error("🔥 Translation Error:", err); // 👈 CHECK THIS IN RENDER LOGS
     res.status(500).json({ msg: "Translation failed" });
   }
 };
