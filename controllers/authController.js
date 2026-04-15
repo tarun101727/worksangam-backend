@@ -1419,18 +1419,28 @@ export const translateHandler = async (req, res) => {
       return res.status(400).json({ msg: "Text and target required" });
     }
 
-    // 🔍 Find language document
+    // 🔍 Get language dictionary
     const langDoc = await Translate.findOne({ languageCode: target });
 
     if (!langDoc) {
       return res.status(404).json({ msg: "Language not found" });
     }
 
-    // 🔍 Find translation from DB
-    const translated = langDoc.translations[text];
+    const dict = langDoc.translations;
+
+    // ✅ CLEAN TEXT
+    const cleanText = text.trim();
+
+    // ✅ SPLIT INTO WORDS
+    const words = cleanText.split(/\s+/);
+
+    // ✅ TRANSLATE WORD BY WORD
+    const translatedText = words
+      .map(word => dict[word] || dict[word.toLowerCase()] || word)
+      .join(" ");
 
     res.json({
-      translated: translated || text, // fallback
+      translated: translatedText,
     });
 
   } catch (err) {
