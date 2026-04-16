@@ -105,7 +105,7 @@ ratings: [
     },
     value: {
       type: Number,
-      min: 1,
+      min: 0.5,   // ✅ FIX HERE
       max: 5,
     },
   },
