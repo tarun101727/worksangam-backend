@@ -959,7 +959,7 @@ export const rateEmployee = async (req, res) => {
     const hirerId = req.user.id;
     const { employeeId, rating } = req.body;
 
-    if (!employeeId || !rating) {
+    if (!employeeId || rating == null) {
       return res.status(400).json({ msg: "Employee and rating required" });
     }
 
@@ -967,7 +967,7 @@ export const rateEmployee = async (req, res) => {
       return res.status(400).json({ msg: "Rating must be between 0.5 and 5" });
     }
 
-    if (rating % 0.5 !== 0) {
+    if (Math.round(rating * 2) / 2 !== rating){
       return res.status(400).json({ msg: "Rating must be in 0.5 steps" });
     }
 
