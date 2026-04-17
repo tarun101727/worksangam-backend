@@ -1,26 +1,98 @@
+// controllers/paymentController.js
+import axios from "axios";
+import Payment from "../models/Payment.js";
+import { CREDIT_PLANS } from "../utils/creditPlans.js";
 import User from "../models/User.js";
 
-/* ADD CREDITS AFTER SUCCESS */
-export const addCredits = async (req, res) => {
+
+
+export const createOrder = async (req, res) => {
   try {
     const userId = req.user.id;
     const { amount } = req.body;
 
-    const creditsToAdd = amount; // ₹100 = 100 credits
+    const credits = CREDIT_PLANS[amount];
 
-    const user = await User.findByIdAndUpdate(
+    if (!credits) {
+      return res.status(400).json({ msg: "Invalid plan" });
+    }
+
+    const orderId = `order_${Date.now()}`;
+
+    // SAVE PAYMENT FIRST
+    await Payment.create({
       userId,
-      { $inc: { credits: creditsToAdd } },
-      { new: true }
+      orderId,
+      amount,
+      credits,
+    });
+
+    // CALL CASHFREE
+    const response = await axios.post(
+      "https://api.cashfree.com/pg/orders",
+      {
+        order_id: orderId,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: {
+          customer_id: userId,
+          customer_email: req.user.email,
+        },
+      },
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2022-09-01",
+        },
+      }
     );
 
     res.json({
-      msg: "Credits added successfully",
-      credits: user.credits,
+      payment_session_id: response.data.payment_session_id,
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ msg: "Order creation failed" });
+  }
+};
+
+
+
+export const cashfreeWebhook = async (req, res) => {
+  try {
+    const data = req.body;
+
+    const orderId = data.order.order_id;
+    const paymentStatus = data.order.order_status;
+
+    const payment = await Payment.findOne({ orderId });
+
+    if (!payment) return res.sendStatus(404);
+
+    // Prevent duplicate credit
+    if (payment.status === "SUCCESS") {
+      return res.sendStatus(200);
+    }
+
+    if (paymentStatus === "PAID") {
+      payment.status = "SUCCESS";
+      await payment.save();
+
+      // ADD CREDITS
+      await User.findByIdAndUpdate(payment.userId, {
+        $inc: { credits: payment.credits },
+      });
+    } else {
+      payment.status = "FAILED";
+      await payment.save();
+    }
+
+    res.sendStatus(200);
+
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
   }
 };
