@@ -343,24 +343,37 @@ export const markNotificationsAsRead = async (req, res) => {
 export const createOnlinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
-    const { profession, description, priceType, expectedPrice, minPrice, maxPrice, currency, languages = [] } = req.body;
+
+    const {
+      profession,
+      description,
+      priceType,
+      expectedPrice,
+      minPrice,
+      maxPrice,
+      currency,
+      languages = []
+    } = req.body;
 
     if (!profession || !description) {
       return res.status(400).json({ msg: "Profession and description required" });
     }
 
-    // ✅ Fetch profession type
-    const prof = await Profession.findOne({ name: profession });
-    const professionType = prof?.type || "online"; // default to online if not found
+    // ✅ FIX: Always force online
+    const professionType = "online";
 
     let price = null;
-    if (priceType === "fixed") price = { type: "fixed", value: expectedPrice, currency };
-    if (priceType === "negotiable") price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+    if (priceType === "fixed") {
+      price = { type: "fixed", value: expectedPrice, currency };
+    }
+    if (priceType === "negotiable") {
+      price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+    }
 
     const post = await HirerPost.create({
       hirer: hirerId,
       profession,
-      professionType, // save type
+      professionType, // ✅ always online now
       description,
       price,
       postType: "normal",
@@ -369,19 +382,8 @@ export const createOnlinePost = async (req, res) => {
       languages,
     });
 
-    // Notify relevant employees
-    const workers = await User.find({ role: "employee", profession });
-    workers.forEach((worker) => {
-      io.to(worker._id.toString()).emit("new-job-request", {
-        jobId: post._id,
-        profession,
-        languages,
-      });
-    });
-
-    io.emit("job-added-to-home", post);
-
     res.json({ msg: "Online job post created", job: post });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
