@@ -42,6 +42,8 @@ export const createOrder = async (req, res) => {
         customer_details: {
           customer_id: userId,
           customer_email: user.email, // ✅ FIXED
+            customer_phone: "9" + Math.floor(100000000 + Math.random() * 900000000),
+
         },
       },
       {
