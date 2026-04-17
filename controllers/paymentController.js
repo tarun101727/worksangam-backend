@@ -17,9 +17,15 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ msg: "Invalid plan" });
     }
 
+    // ✅ GET USER FROM DB
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
     const orderId = `order_${Date.now()}`;
 
-    // SAVE PAYMENT FIRST
     await Payment.create({
       userId,
       orderId,
@@ -27,7 +33,6 @@ export const createOrder = async (req, res) => {
       credits,
     });
 
-    // CALL CASHFREE
     const response = await axios.post(
       "https://api.cashfree.com/pg/orders",
       {
@@ -36,7 +41,7 @@ export const createOrder = async (req, res) => {
         order_currency: "INR",
         customer_details: {
           customer_id: userId,
-          customer_email: req.user.email,
+          customer_email: user.email, // ✅ FIXED
         },
       },
       {
@@ -53,7 +58,7 @@ export const createOrder = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
     res.status(500).json({ msg: "Order creation failed" });
   }
 };
