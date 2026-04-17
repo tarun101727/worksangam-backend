@@ -18,7 +18,7 @@ import offlineProfessionRoutes from "./routes/offlineProfessionRoutes.js";
 import onlineWorkerRoutes from "./routes/onlineWorkerRoutes.js"
 import languageRoutes from "./routes/languageRoutes.js";
 import pushRoutes from './routes/pushRoutes.js';
-
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 dotenv.config();
 
@@ -76,6 +76,7 @@ app.use("/api/online-professions", onlineProfessionRoutes);
 app.use("/api/offline-professions", offlineProfessionRoutes);
 app.use("/api/online-workers" , onlineWorkerRoutes)
 app.use("/api/languages", languageRoutes);
+app.use("/api/payment", paymentRoutes);
 app.use('/api/push', pushRoutes); 
 
 /* -------------------- Start Server -------------------- */
