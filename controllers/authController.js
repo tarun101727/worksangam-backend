@@ -1496,3 +1496,21 @@ export const updateUserLanguage = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+// Get current user's credit balance
+export const getUserCredits = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select("credits");
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    res.json({ credits: user.credits });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
