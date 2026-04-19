@@ -33,6 +33,7 @@ getCurrentUser,
   getNearbyOfflineEmployees,
   translateHandler,
   updateUserLanguage,
+  getUserCredits,
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -286,5 +287,7 @@ router.get(
   authMiddleware,
   getNearbyOfflineEmployees
 );
+
+router.get("/user/credits", authMiddleware, getUserCredits);
 
 export default router;
