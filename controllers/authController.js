@@ -230,16 +230,32 @@ export const verifyOtp = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      email: normalizedEmail,
-      password: hashedPassword,
-      role,
-      isVerified: true,
-      isGuest: true,
-      onboardingStep:
-        role === 'employee' ? 'employee_profile' : 'hirer_profile',
-        preferredLanguage: req.body.preferredLanguage || "en",
-    });
+    // 🔥 GET GUEST USER FROM COOKIE
+let user = await getGuestFromRequest(req);
+
+if (user) {
+  // ✅ CONVERT GUEST → REAL USER
+  user.email = normalizedEmail;
+  user.password = hashedPassword;
+  user.role = role;
+  user.isGuest = false;
+  user.isVerified = true;
+  user.onboardingStep =
+    role === 'employee' ? 'employee_profile' : 'hirer_profile';
+
+  await user.save();
+} else {
+  // fallback (no guest exists)
+  user = await User.create({
+    email: normalizedEmail,
+    password: hashedPassword,
+    role,
+    isVerified: true,
+    isGuest: false,
+    onboardingStep:
+      role === 'employee' ? 'employee_profile' : 'hirer_profile',
+  });
+}
 
     await OTP.deleteMany({ email: normalizedEmail });
 
@@ -266,15 +282,16 @@ export const verifyOtp = async (req, res) => {
 export const createAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { firstName, lastName, age, gender ,genderLabel  } = req.body;
+    const { firstName, lastName, age, gender, genderLabel } = req.body;
 
+    // ✅ VALIDATIONS
     if (!firstName || !firstName.trim()) {
-  return res.status(400).json({ msg: "First name required" });
-}
+      return res.status(400).json({ msg: "First name required" });
+    }
 
-if (!lastName || !lastName.trim()) {
-  return res.status(400).json({ msg: "Last name required" });
-}
+    if (!lastName || !lastName.trim()) {
+      return res.status(400).json({ msg: "Last name required" });
+    }
 
     const ageNum = Number(age);
     if (!Number.isInteger(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
@@ -285,21 +302,38 @@ if (!lastName || !lastName.trim()) {
       return res.status(400).json({ msg: "Invalid gender" });
     }
 
-    let profileImage = null;
+    // 🔥 STEP 1: GET USER FIRST
+    const existingUser = await User.findById(userId);
 
-if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-  });
+    if (!existingUser) {
+      return res.status(404).json({ msg: "User not found" });
+    }
 
-  profileImage = result.secure_url; // ✅ CLOUDINARY URL
-}
+    // 🔥 STEP 2: FORCE CONVERT GUEST → HIRER
+    if (existingUser.isGuest) {
+      existingUser.isGuest = false;
+      existingUser.role = "hirer";
+      await existingUser.save();
+    }
 
+    // 🔥 STEP 3: HANDLE IMAGE
+    let profileImage = existingUser.profileImage || null;
+
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profile_images",
+        public_id: `user_${userId}_${Date.now()}`,
+      });
+
+      profileImage = result.secure_url;
+    }
+
+    // 🔥 STEP 4: AVATAR
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
 
-    const user = await User.findByIdAndUpdate(
+    // 🔥 STEP 5: UPDATE USER
+    const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
         firstName,
@@ -312,11 +346,13 @@ if (req.file) {
         avatarColor,
         isGuest: false,
         onboardingStep: "completed",
+        role: "hirer", // ✅ ENSURE ROLE IS SET
       },
       { new: true }
     );
 
-    res.json({ msg: "Account completed", user });
+    res.json({ msg: "Account completed", user: updatedUser });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -377,8 +413,6 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-
-
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -395,6 +429,14 @@ export const login = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
+    // 🔥 CHECK CURRENT SESSION GUEST
+    const guestUser = await getGuestFromRequest(req);
+
+    if (guestUser && guestUser._id.toString() !== user._id.toString()) {
+      // ✅ DELETE OLD GUEST ACCOUNT
+      await User.findByIdAndDelete(guestUser._id);
+    }
+
     // Create JWT
     const token = jwt.sign(
       { id: user._id },
@@ -406,29 +448,26 @@ export const login = async (req, res) => {
     setAuthCookie(res, token, user);
 
     res.json({
-  msg: 'Login successful',
-  user: {
-    _id: user._id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: user.role,
-    isGuest: user.isGuest,          // ✅ IMPORTANT
-    isVerified: user.isVerified,
-    onboardingStep: user.onboardingStep,
-    avatarInitial: user.avatarInitial,
-    avatarColor: user.avatarColor,
-  },
-});
-
+      msg: 'Login successful',
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isGuest: user.isGuest,
+        isVerified: user.isVerified,
+        onboardingStep: user.onboardingStep,
+        avatarInitial: user.avatarInitial,
+        avatarColor: user.avatarColor,
+      },
+    });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Login error' });
   }
 };
-
-
 
 export const logout = (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -875,7 +914,7 @@ export const createEmployeeAccount = async (req, res) => {
       gender,
       genderLabel,
       profession,
-      professionType, // from frontend
+      professionType,
       skills,
       experience,
       bio,
@@ -886,6 +925,13 @@ export const createEmployeeAccount = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
+    }
+
+    // ✅ FORCE CONVERT GUEST → EMPLOYEE (ADD HERE)
+    if (user.isGuest) {
+      user.isGuest = false;
+      user.role = "employee";
+      await user.save();
     }
 
     const updateData = {
@@ -900,25 +946,26 @@ export const createEmployeeAccount = async (req, res) => {
       languages: languages.split(",").map((l) => l.trim()),
       avatarInitial: firstName.charAt(0).toUpperCase(),
       avatarColor: getAvatarColor(firstName),
-      role: "employee",
-      isGuest: false,
+      role: "employee",        // still keep (safe)
+      isGuest: false,          // still keep (safe)
       onboardingStep: "completed",
     };
 
-    // Only update profession and professionType if profession changed
+    // Only update profession if changed
     if (profession && profession !== user.profession) {
       updateData.profession = profession;
-      updateData.professionType = professionType || "offline"; // fallback if frontend sends nothing
+      updateData.professionType = professionType || "offline";
     }
 
+    // ✅ Upload profile image if exists
     if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `user_${userId}_${Date.now()}`,
-  });
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profile_images",
+        public_id: `user_${userId}_${Date.now()}`,
+      });
 
-  updateData.profileImage = result.secure_url;
-}
+      updateData.profileImage = result.secure_url;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -929,6 +976,7 @@ export const createEmployeeAccount = async (req, res) => {
       msg: "Employee profile updated successfully",
       user: updatedUser,
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
