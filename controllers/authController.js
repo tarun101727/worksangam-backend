@@ -420,9 +420,26 @@ export const login = async (req, res) => {
 
 
 export const logout = (req, res) => {
-  res.clearCookie('token');
-  res.clearCookie('username');
-  res.clearCookie('userId');
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'None' : 'Lax',
+  });
+
+  res.clearCookie('username', {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: 'Lax',
+  });
+
+  res.clearCookie('userId', {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: 'Lax',
+  });
+
   res.status(200).json({ msg: 'Logout successful. Cookies cleared.' });
 };
 
