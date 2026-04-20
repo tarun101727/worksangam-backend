@@ -792,7 +792,9 @@ export const createGuestUser = async (req, res) => {
   isGuest: true,
   isVerified: false,
 
-  professionType: "guest",   // ✅ ADD THIS LINE
+  onboardingStep: "completed",   // ✅ ADD THIS LINE
+
+  professionType: "guest",
 
   avatarInitial: 'G',
   avatarColor: '#999999',
