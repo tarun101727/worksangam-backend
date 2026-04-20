@@ -112,7 +112,11 @@ ratings: [
 ],
 
 profession: { type: String, default: null },
-professionType: { type: String, enum: ["online", "offline"], default: "offline" },
+professionType: { 
+  type: String, 
+  enum: ["online", "offline", "guest"],  // ✅ ADD guest
+  default: "offline" 
+},
 preferredLanguage: {
   type: String,
   default: "en",
