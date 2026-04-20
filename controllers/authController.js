@@ -99,6 +99,53 @@ const getGuestFromRequest = async (req) => {
   }
 };
 
+const sendOtpEmail = async (email, subject = "Your OTP Code") => {
+  // Normalize email
+  email = email.toLowerCase().trim();
+
+  // Validate email
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Invalid email address");
+  }
+
+  // Rate limit (1 OTP per 60 sec)
+  const recentOtp = await OTP.findOne({
+    email,
+    createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
+  });
+
+  if (recentOtp) {
+    throw new Error("Please wait before requesting another OTP");
+  }
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Save OTP
+  await OTP.create({
+    email,
+    otp,
+    createdAt: new Date(),
+  });
+
+  // Send Email via Postmark
+  await postmarkClient.sendEmail({
+    From: "Worksangam <info@worksangam.in>",
+    To: email,
+    Subject: subject,
+    HtmlBody: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Worksangam Verification</h2>
+        <h1 style="letter-spacing: 4px;">${otp}</h1>
+        <p>This OTP is valid for <b>5 minutes</b>.</p>
+        <p>If you didn’t request this, ignore this email.</p>
+      </div>
+    `,
+    TextBody: `Your OTP is ${otp}. Valid for 5 minutes.`,
+  });
+
+  return otp;
+};
 
 export const signup = async (req, res) => {
   try {
@@ -282,57 +329,21 @@ const postmarkClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN)
 export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
-    console.log("📩 Received send OTP request:", email);
 
     email = email.toLowerCase().trim();
 
-    // Validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ msg: "Invalid email address" });
-    }
-
-    // Prevent duplicate accounts
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: "Email already registered" });
     }
 
-    // OTP rate limit (1 per minute)
-    const recentOtp = await OTP.findOne({
-      email,
-      createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
-    });
-    if (recentOtp) {
-      return res.status(429).json({ msg: "Please wait before requesting another OTP" });
-    }
+    await sendOtpEmail(email, "Signup OTP");
 
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log("🔢 Generated OTP:", otp);
-
-    await OTP.create({ email, otp, createdAt: new Date() });
-
-    // Send OTP via Postmark
-    await postmarkClient.sendEmail({
-      From: "Worksangam <info@worksangam.in>",
-      To: email,
-      Subject: "Your OTP Code",
-      HtmlBody: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>Your OTP for Worksangam</h2>
-          <h1 style="letter-spacing: 3px;">${otp}</h1>
-          <p>This OTP is valid for 5 minutes.</p>
-          <p>If you did not request this, ignore this email.</p>
-        </div>
-      `,
-      TextBody: `Your OTP is ${otp}. Valid for 5 minutes.`,
-    });
-
-    console.log("✅ OTP sent via Postmark to:", email);
     res.json({ msg: "OTP sent successfully" });
+
   } catch (err) {
-    console.error("❌ sendOtp error:", err);
-    res.status(500).json({ msg: "Internal Server Error" });
+    console.error("sendOtp error:", err.message);
+    res.status(400).json({ msg: err.message });
   }
 };
 
@@ -450,36 +461,18 @@ export const sendOtpForgotPassword = async (req, res) => {
 
     email = email.toLowerCase().trim();
 
-    const existingUser = await User.findOne({ email });
-    if (!existingUser) {
-      return res.status(400).json({ msg: 'Email not found.' });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: "Email not found" });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await sendOtpEmail(email, "Reset Password OTP");
 
-    await OTP.create({
-      email,
-      otp,
-      createdAt: new Date(),
-    });
-
-    await postmarkClient.sendEmail({
-      From: "Worksangam <info@worksangam.in>",
-      To: email,
-      Subject: "Reset Password OTP",
-      HtmlBody: `
-        <h2>Password Reset OTP</h2>
-        <h1>${otp}</h1>
-        <p>Valid for 5 minutes</p>
-      `,
-      TextBody: `Your OTP is ${otp}`,
-    });
-
-    res.json({ msg: 'OTP sent successfully' });
+    res.json({ msg: "OTP sent successfully" });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error("Forgot OTP error:", err.message);
+    res.status(400).json({ msg: err.message });
   }
 };
 
@@ -1142,28 +1135,17 @@ export const sendOtpToCurrentEmail = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 
-    const email = user.email;
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await OTP.create({
-      email,
-      otp,
-      createdAt: new Date(),
-    });
-
-    await postmarkClient.sendEmail({
-      From: "Worksangam <info@worksangam.in>",
-      To: email,
-      Subject: "Security Verification OTP",
-      HtmlBody: `<h2>Your OTP</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
-      TextBody: `OTP: ${otp}`,
-    });
+    await sendOtpEmail(user.email, "Security Verification OTP");
 
     res.json({ msg: "OTP sent" });
 
   } catch (err) {
-    res.status(500).json({ msg: "Server error" });
+    console.error("Current email OTP error:", err.message);
+    res.status(400).json({ msg: err.message });
   }
 };
 
@@ -1218,26 +1200,13 @@ export const sendOtpToNewEmail = async (req, res) => {
       return res.status(400).json({ msg: "Email already used" });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await OTP.create({
-      email: newEmail,
-      otp,
-      createdAt: new Date(),
-    });
-
-    await postmarkClient.sendEmail({
-      From: "Worksangam <info@worksangam.in>",
-      To: newEmail,
-      Subject: "Verify New Email",
-      HtmlBody: `<h2>Your OTP</h2><h1>${otp}</h1><p>Valid for 5 minutes</p>`,
-      TextBody: `OTP: ${otp}`,
-    });
+    await sendOtpEmail(newEmail, "Verify New Email");
 
     res.json({ msg: "OTP sent" });
 
   } catch (err) {
-    res.status(500).json({ msg: "Server error" });
+    console.error("New email OTP error:", err.message);
+    res.status(400).json({ msg: err.message });
   }
 };
 
