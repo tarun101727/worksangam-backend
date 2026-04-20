@@ -125,7 +125,7 @@ router.post('/reset-password', resetPassword);
 // Verify OTP for Forgot Password
 router.post('/verify-otp-forgot-password', verifyOtpForgotPassword);
 
-router.post('/logout', authMiddleware, logout);
+router.post('/logout', logout);
 
 router.delete('/delete-account', authMiddleware, deleteAccount);
 
