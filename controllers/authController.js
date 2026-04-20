@@ -787,13 +787,16 @@ export const createGuestUser = async (req, res) => {
     const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
 
     const guestUser = new User({
-      email: guestEmail,
-      role: 'guest',
-      isGuest: true,
-      isVerified: false,
-      avatarInitial: 'G',
-      avatarColor: '#999999',
-    });
+  email: guestEmail,
+  role: 'guest',
+  isGuest: true,
+  isVerified: false,
+
+  professionType: "guest",   // ✅ ADD THIS LINE
+
+  avatarInitial: 'G',
+  avatarColor: '#999999',
+});
 
     await guestUser.save();
 
