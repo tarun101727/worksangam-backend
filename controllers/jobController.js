@@ -384,33 +384,30 @@ export const createOnlinePost = async (req, res) => {
 
     // 🔥 ================= ADD YOUR CODE HERE =================
 
+    // 🔍 FIND ALL MATCHING ONLINE EMPLOYEES
     const employees = await User.find({
-  role: "employee",
-  profession: profession,
-  professionType: "online",
-  isAvailable: true,
-});
+      role: "employee",
+      profession: profession,
+      professionType: "online",
+      isAvailable: true,
+    });
 
-console.log("🔥 Found employees:", employees.length);
+    // 🔔 CREATE + SEND NOTIFICATIONS
+    for (const emp of employees) {
+      const notification = await Notification.create({
+        type: "new_job",
+        sender: hirerId,
+        receiver: emp._id,
+        job: post._id,
+      });
 
-for (const emp of employees) {
-  console.log("➡️ Sending to employee:", emp._id);
+      const populated = await Notification.findById(notification._id)
+        .populate("sender", "firstName lastName profileImage avatarInitial avatarColor")
+        .populate("job", "profession description");
 
-  const notification = await Notification.create({
-    type: "job_application", // ✅ FIX (schema compatible)
-    sender: hirerId,
-    receiver: emp._id,
-    job: post._id,
-  });
-
-  const populated = await Notification.findById(notification._id)
-    .populate("sender", "firstName lastName profileImage avatarInitial avatarColor")
-    .populate("job", "profession description");
-
-  console.log("📡 Emitting socket to:", emp._id);
-
-  io.to(emp._id.toString()).emit("new-job-notification", populated);
-}
+      // ✅ SOCKET EMIT (REAL-TIME)
+      io.to(emp._id.toString()).emit("new-job-notification", populated);
+    }
 
     // 🔥 =====================================================
 
@@ -470,7 +467,6 @@ export const createOfflinePost = async (req, res) => {
     // 🔥 FIND NEARBY EMPLOYEES (5KM)
     // ==============================
     const employees = await User.aggregate([
-     
       {
         $geoNear: {
           near: post.location,
@@ -636,4 +632,4 @@ export const deleteJob = async (req, res) => {
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
   }
-};
+}; 
