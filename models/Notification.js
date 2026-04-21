@@ -2,15 +2,15 @@ import mongoose from "mongoose";
 
 const NotificationSchema = new mongoose.Schema({
   type: {
-  type: String,
-  enum: [
-    "job_application",
-    "application_accepted",
-    "application_rejected",
-    "new_job"
-  ],
-  required: true,
-},
+    type: String,
+    enum: [
+  "job_application",
+  "application_accepted",
+  "application_rejected",
+  "new_job"   // ✅ ADD THIS
+],
+    required: true,
+  },
 
   sender: {
     type: mongoose.Schema.Types.ObjectId,
