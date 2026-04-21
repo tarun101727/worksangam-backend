@@ -394,6 +394,7 @@ export const createOnlinePost = async (req, res) => {
    console.log("👥 Employees found:", employees.length);
     // 🔔 CREATE + SEND NOTIFICATIONS
     for (const emp of employees) {
+      console.log("📤 Sending job to:", emp._id.toString());
       const notification = await Notification.create({
         type: "new_job",
         sender: hirerId,
