@@ -3,9 +3,8 @@ import { subscriptions } from "../routes/pushRoutes.js";
 import HirerPost from "../models/HirerPost.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
-import { io } from "../socket.js";
+import { io , onlineUsers } from "../socket.js";
 import Profession from "../models/Profession.js";
-import { io, onlineUsers } from "../socket.js";
 
 /* ================= GET NEARBY JOBS (EMPLOYEE) ================= */
 export const getNearbyJobs = async (req, res) => {
