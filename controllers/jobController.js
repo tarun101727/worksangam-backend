@@ -359,6 +359,7 @@ export const createOnlinePost = async (req, res) => {
       return res.status(400).json({ msg: "Profession and description required" });
     }
 
+    // ✅ FIX: Always force online
     const professionType = "online";
 
     let price = null;
@@ -369,11 +370,10 @@ export const createOnlinePost = async (req, res) => {
       price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
     }
 
-    // ✅ CREATE POST
     const post = await HirerPost.create({
       hirer: hirerId,
       profession,
-      professionType,
+      professionType, // ✅ always online now
       description,
       price,
       postType: "normal",
@@ -382,37 +382,6 @@ export const createOnlinePost = async (req, res) => {
       languages,
     });
 
-    // 🔥 ================= ADD YOUR CODE HERE =================
-   console.log("📢 Job created for profession:", profession);
-    // 🔍 FIND ALL MATCHING ONLINE EMPLOYEES
-    const employees = await User.find({
-      role: "employee",
-      profession: profession,
-      professionType: "online",
-      isAvailable: true,
-    });
-   console.log("👥 Employees found:", employees.length);
-    // 🔔 CREATE + SEND NOTIFICATIONS
-    for (const emp of employees) {
-      console.log("📤 Sending job to:", emp._id.toString());
-      const notification = await Notification.create({
-        type: "new_job",
-        sender: hirerId,
-        receiver: emp._id,
-        job: post._id,
-      });
-
-      const populated = await Notification.findById(notification._id)
-        .populate("sender", "firstName lastName profileImage avatarInitial avatarColor")
-        .populate("job", "profession description");
-
-      // ✅ SOCKET EMIT (REAL-TIME)
-      io.to(emp._id.toString()).emit("new-job-notification", populated);
-    }
-
-    // 🔥 =====================================================
-
-    // ✅ RESPONSE AFTER EVERYTHING
     res.json({ msg: "Online job post created", job: post });
 
   } catch (err) {
@@ -424,31 +393,21 @@ export const createOnlinePost = async (req, res) => {
 export const createOfflinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
-    const { 
-      profession, 
-      description, 
-      priceType, 
-      expectedPrice, 
-      minPrice, 
-      maxPrice, 
-      currency, 
-      languages = [] 
-    } = req.body;
+    const { profession, description, priceType, expectedPrice, minPrice, maxPrice, currency, languages = [] } = req.body;
 
     if (!profession || !description) {
       return res.status(400).json({ msg: "Profession and description required" });
     }
 
     const prof = await Profession.findOne({ name: profession });
-    const professionType = prof?.type || "offline";
+    const professionType = prof?.type || "offline"; // default offline
 
     let price = null;
-    if (priceType === "fixed") price = { type: "fixed", value: Number(expectedPrice), currency };
-    else if (priceType === "hourly") price = { type: "hourly", value: Number(expectedPrice), currency };
-    else if (priceType === "negotiable") price = { type: "negotiable", min: Number(minPrice), max: Number(maxPrice), currency };
-    else if (priceType === "inspect_quote") price = { type: "inspect_quote", currency };
+if (priceType === "fixed") price = { type: "fixed", value: Number(expectedPrice), currency };
+else if (priceType === "hourly") price = { type: "hourly", value: Number(expectedPrice), currency };
+else if (priceType === "negotiable") price = { type: "negotiable", min: Number(minPrice), max: Number(maxPrice), currency };
+else if (priceType === "inspect_quote") price = { type: "inspect_quote", currency };
 
-    // ✅ CREATE POST
     const post = await HirerPost.create({
       hirer: hirerId,
       profession,
@@ -459,58 +418,11 @@ export const createOfflinePost = async (req, res) => {
       status: "pending",
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       languages,
-
-      // ⚠️ IMPORTANT: Make sure location is stored
-      location: req.body.location, 
     });
 
-    // ==============================
-    // 🔥 FIND NEARBY EMPLOYEES (5KM)
-    // ==============================
-    const employees = await User.aggregate([
-      {
-        $geoNear: {
-          near: post.location,
-          distanceField: "distance",
-          maxDistance: 5000, // 5 KM
-          spherical: true,
-        },
-      },
-      {
-        $match: {
-          role: "employee",
-          profession: profession,
-          professionType: "offline",
-          isAvailable: true,
-        },
-      },
-    ]);
-
-    // ==============================
-    // 🔔 SEND NOTIFICATIONS
-    // ==============================
-    for (const emp of employees) {
-      const notification = await Notification.create({
-        type: "new_job",
-        sender: hirerId,
-        receiver: emp._id,
-        job: post._id,
-      });
-
-      const populated = await Notification.findById(notification._id)
-        .populate("sender", "firstName lastName profileImage avatarInitial avatarColor")
-        .populate("job", "profession description");
-
-      io.to(emp._id.toString()).emit("new-job-notification", populated);
-    }
-
-    // ==============================
-    // 🌍 BROADCAST TO HOME (OPTIONAL)
-    // ==============================
     io.emit("job-added-to-home", post);
 
     res.json({ msg: "Offline job post created", job: post });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -633,4 +545,4 @@ export const deleteJob = async (req, res) => {
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
   }
-}; 
+};
