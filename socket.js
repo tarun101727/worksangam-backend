@@ -13,6 +13,16 @@ export const initSocket = (server) => {
   io.on("connection", (socket) => {
     const userId = socket.handshake.auth.userId;
 
+console.log("🔌 CONNECTED USER:", userId);
+
+if (userId) {
+  socket.join(userId);
+  console.log("✅ Joined room:", userId);
+} else {
+  console.log("❌ No userId received in socket");
+}
+    const userId = socket.handshake.auth.userId;
+
     if (userId) {
       socket.join(userId); // personal notification room
     }
