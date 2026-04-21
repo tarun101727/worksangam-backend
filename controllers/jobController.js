@@ -5,7 +5,7 @@ import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { io } from "../socket.js";
 import Profession from "../models/Profession.js";
-
+import { io, onlineUsers } from "../socket.js";
 
 /* ================= GET NEARBY JOBS (EMPLOYEE) ================= */
 export const getNearbyJobs = async (req, res) => {
@@ -343,49 +343,44 @@ export const markNotificationsAsRead = async (req, res) => {
 export const createOnlinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
+    const { profession, description } = req.body;
 
-    const {
-      profession,
-      description,
-      priceType,
-      expectedPrice,
-      minPrice,
-      maxPrice,
-      currency,
-      languages = []
-    } = req.body;
-
-    if (!profession || !description) {
-      return res.status(400).json({ msg: "Profession and description required" });
-    }
-
-    // ✅ FIX: Always force online
-    const professionType = "online";
-
-    let price = null;
-    if (priceType === "fixed") {
-      price = { type: "fixed", value: expectedPrice, currency };
-    }
-    if (priceType === "negotiable") {
-      price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
-    }
-
-    const post = await HirerPost.create({
+    const job = await HirerPost.create({
       hirer: hirerId,
       profession,
-      professionType, // ✅ always online now
+      professionType: "online",
       description,
-      price,
-      postType: "normal",
       status: "pending",
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      languages,
     });
 
-    res.json({ msg: "Online job post created", job: post });
+    // 🔥 FIND MATCHING EMPLOYEES
+    const employees = await User.find({
+      role: "employee",
+      profession,
+    });
+
+    for (const emp of employees) {
+      const socketId = onlineUsers.get(emp._id.toString());
+
+      if (socketId && emp.isAvailable) {
+        // 🟢 LIVE → POPUP
+        io.to(socketId).emit("new-job-popup", {
+          ...job.toObject(),
+          hirer: { _id: hirerId }
+        });
+      } else {
+        // 🔴 OFFLINE → STORE NOTIFICATION
+        await Notification.create({
+          receiver: emp._id,
+          type: "job",
+          job: job._id,
+        });
+      }
+    }
+
+    res.json({ job });
 
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
@@ -393,38 +388,46 @@ export const createOnlinePost = async (req, res) => {
 export const createOfflinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
-    const { profession, description, priceType, expectedPrice, minPrice, maxPrice, currency, languages = [] } = req.body;
+    const { profession, location } = req.body;
 
-    if (!profession || !description) {
-      return res.status(400).json({ msg: "Profession and description required" });
-    }
-
-    const prof = await Profession.findOne({ name: profession });
-    const professionType = prof?.type || "offline"; // default offline
-
-    let price = null;
-if (priceType === "fixed") price = { type: "fixed", value: Number(expectedPrice), currency };
-else if (priceType === "hourly") price = { type: "hourly", value: Number(expectedPrice), currency };
-else if (priceType === "negotiable") price = { type: "negotiable", min: Number(minPrice), max: Number(maxPrice), currency };
-else if (priceType === "inspect_quote") price = { type: "inspect_quote", currency };
-
-    const post = await HirerPost.create({
+    const job = await HirerPost.create({
       hirer: hirerId,
       profession,
-      professionType,
-      description,
-      price,
-      postType: "normal",
+      professionType: "offline",
+      location,
       status: "pending",
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      languages,
     });
 
-    io.emit("job-added-to-home", post);
+    const radius = 5000; // 5km
 
-    res.json({ msg: "Offline job post created", job: post });
+    const employees = await User.find({
+      role: "employee",
+      profession,
+      location: {
+        $near: {
+          $geometry: location,
+          $maxDistance: radius,
+        },
+      },
+    });
+
+    for (const emp of employees) {
+      const socketId = onlineUsers.get(emp._id.toString());
+
+      if (socketId && emp.isAvailable) {
+        io.to(socketId).emit("new-job-popup", job);
+      } else {
+        await Notification.create({
+          receiver: emp._id,
+          type: "job",
+          job: job._id,
+        });
+      }
+    }
+
+    res.json({ job });
+
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
