@@ -383,7 +383,7 @@ export const createOnlinePost = async (req, res) => {
     });
 
     // 🔥 ================= ADD YOUR CODE HERE =================
-
+   console.log("📢 Job created for profession:", profession);
     // 🔍 FIND ALL MATCHING ONLINE EMPLOYEES
     const employees = await User.find({
       role: "employee",
@@ -391,7 +391,7 @@ export const createOnlinePost = async (req, res) => {
       professionType: "online",
       isAvailable: true,
     });
-
+   console.log("👥 Employees found:", employees.length);
     // 🔔 CREATE + SEND NOTIFICATIONS
     for (const emp of employees) {
       const notification = await Notification.create({
