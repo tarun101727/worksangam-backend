@@ -17,7 +17,7 @@ export const initSocket = (server) => {
       socket.join(userId); // personal notification room
     }
 
-    console.log("🔌 Socket connected userId:", userId);
+    console.log("🔌 Socket connected:", userId);
 
     /* -------------------- VIDEO ROOM (NEW) -------------------- */
 
