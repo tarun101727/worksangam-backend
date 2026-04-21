@@ -382,6 +382,27 @@ export const createOnlinePost = async (req, res) => {
       languages,
     });
 
+    // 🔥 FIND MATCHING EMPLOYEES
+const employees = await User.find({
+  role: "employee",
+  profession: profession,
+  isAvailable: true
+}).select("_id");
+
+// 🔥 SEND REAL-TIME NOTIFICATION
+employees.forEach(emp => {
+  io.to(emp._id.toString()).emit("new-job-notification", {
+    type: "new_job",
+    postId: post._id,
+    profession: post.profession,
+    description: post.description,
+    price: post.price,
+    hirer: {
+      _id: hirerId
+    }
+  });
+});
+
     res.json({ msg: "Online job post created", job: post });
 
   } catch (err) {
