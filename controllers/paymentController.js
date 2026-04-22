@@ -74,36 +74,39 @@ export const createOrder = async (req, res) => {
 
 export const cashfreeWebhook = async (req, res) => {
   try {
-    console.log("🔥 Cashfree webhook received:", req.body); // Add this to debug
+    console.log("🔥 Cashfree webhook received:", req.body);
 
     const data = req.body;
-    const orderId = data.order?.order_id;
-    const paymentStatus = data.order?.order_status;
+
+    // ✅ FIXED: correct Cashfree structure
+    const orderId = data.data?.order?.order_id;
+    const paymentStatus = data.data?.payment?.payment_status;
+
+    console.log("OrderId:", orderId);
+    console.log("Payment Status:", paymentStatus);
 
     if (!orderId) return res.sendStatus(400);
 
     const payment = await Payment.findOne({ orderId });
-
     if (!payment) return res.sendStatus(404);
 
-    // Prevent duplicate credit
+    // prevent duplicate credits
     if (payment.status === "SUCCESS") return res.sendStatus(200);
 
-    // ✅ Handle multiple status types
-    if (["PAID", "SUCCESS"].includes(paymentStatus)) {
+    if (paymentStatus === "SUCCESS") {
       payment.status = "SUCCESS";
       await payment.save();
 
-      // ✅ Add credits to user
+      // ✅ ADD CREDITS
       await User.findByIdAndUpdate(payment.userId, {
         $inc: { credits: payment.credits },
       });
 
-      console.log(`✅ Credits added to user ${payment.userId}: +${payment.credits}`);
+      console.log(`✅ Credits added: +${payment.credits}`);
     } else {
       payment.status = "FAILED";
       await payment.save();
-      console.log(`❌ Payment failed for order ${orderId}`);
+      console.log("❌ Payment failed");
     }
 
     res.sendStatus(200);
