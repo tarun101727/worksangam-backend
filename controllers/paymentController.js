@@ -70,8 +70,6 @@ export const createOrder = async (req, res) => {
   }
 };
 
-
-
 export const cashfreeWebhook = async (req, res) => {
   try {
     console.log("🔥 Cashfree webhook received:", req.body);
@@ -113,5 +111,20 @@ export const cashfreeWebhook = async (req, res) => {
   } catch (err) {
     console.error("🔥 Webhook error:", err);
     res.sendStatus(500);
+  }
+};
+
+// ✅ GET USER PAYMENT HISTORY
+export const getUserPayments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const payments = await Payment.find({ userId })
+      .sort({ createdAt: -1 }); // latest first
+
+    res.json({ payments });
+  } catch (err) {
+    console.error("Get payments error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
