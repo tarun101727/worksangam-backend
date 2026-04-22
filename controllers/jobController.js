@@ -442,7 +442,7 @@ export const createOfflinePost = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // ✅ CREDIT CHECK
+    // 🔥 CREDIT CHECK
     if (!user.credits || user.credits < 7) {
       return res.status(400).json({
         msg: "Not enough credits. Please purchase credits.",
@@ -466,28 +466,29 @@ export const createOfflinePost = async (req, res) => {
       });
     }
 
-    // ✅ DEDUCT CREDITS FIRST
-    user.credits -= 7;
-    await user.save();
-
     const prof = await Profession.findOne({ name: profession });
     const professionType = prof?.type || "offline";
 
     let price = null;
 
-    if (priceType === "fixed")
+    if (priceType === "fixed") {
       price = { type: "fixed", value: Number(expectedPrice), currency };
-    else if (priceType === "hourly")
+    } else if (priceType === "hourly") {
       price = { type: "hourly", value: Number(expectedPrice), currency };
-    else if (priceType === "negotiable")
+    } else if (priceType === "negotiable") {
       price = {
         type: "negotiable",
         min: Number(minPrice),
         max: Number(maxPrice),
         currency,
       };
-    else if (priceType === "inspect_quote")
+    } else if (priceType === "inspect_quote") {
       price = { type: "inspect_quote", currency };
+    }
+
+    // 🔥 DEDUCT CREDITS FIRST
+    user.credits -= 7;
+    await user.save();
 
     const post = await HirerPost.create({
       hirer: hirerId,
@@ -503,7 +504,6 @@ export const createOfflinePost = async (req, res) => {
 
     io.emit("job-added-to-home", post);
 
-    // ✅ RETURN UPDATED CREDITS
     res.json({
       msg: "Offline job post created",
       job: post,
