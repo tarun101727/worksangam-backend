@@ -442,23 +442,33 @@ export const createOfflinePost = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // ✅ CREDIT CHECK
     if (!user.credits || user.credits < 7) {
       return res.status(400).json({
         msg: "Not enough credits. Please purchase credits.",
       });
     }
 
-    const {
-      profession,
-      description,
-      priceType,
-      expectedPrice,
-      minPrice,
-      maxPrice,
-      currency,
-      languages = [],
-    } = req.body;
+    const parseField = (field) => {
+      try {
+        return JSON.parse(field);
+      } catch {
+        return field;
+      }
+    };
+
+    const profession = parseField(req.body.profession);
+    const description = parseField(req.body.description);
+    const priceType = parseField(req.body.priceType);
+    const expectedPrice = parseField(req.body.expectedPrice);
+    const minPrice = parseField(req.body.minPrice);
+    const maxPrice = parseField(req.body.maxPrice);
+    const currency = parseField(req.body.currency);
+    const languages = parseField(req.body.languages) || [];
+
+    const location = parseField(req.body.location);
+    const safetyWarnings = parseField(req.body.safetyWarnings);
+    const preferredTime = parseField(req.body.preferredTime);
+    const addressDetails = parseField(req.body.addressDetails);
 
     if (!profession || !description) {
       return res.status(400).json({
@@ -466,11 +476,16 @@ export const createOfflinePost = async (req, res) => {
       });
     }
 
-    // ✅ 🔥 DEDUCT FIRST (CRITICAL RULE)
+    if (!location || !location.coordinates?.length) {
+      return res.status(400).json({
+        msg: "Location required",
+      });
+    }
+
+    // 🔥 deduct
     user.credits -= 7;
     await user.save();
 
-    // ================= PRICE =================
     let price = null;
 
     if (priceType === "fixed") {
@@ -488,13 +503,16 @@ export const createOfflinePost = async (req, res) => {
       price = { type: "inspect_quote", currency };
     }
 
-    // ================= CREATE JOB =================
     const post = await HirerPost.create({
       hirer: hirerId,
       profession,
       professionType: "offline",
       description,
       price,
+      location,
+      safetyWarnings,
+      preferredTime,
+      addressDetails,
       postType: "normal",
       status: "pending",
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -503,7 +521,6 @@ export const createOfflinePost = async (req, res) => {
 
     io.emit("job-added-to-home", post);
 
-    // ✅ RETURN UPDATED CREDITS
     res.json({
       msg: "Offline job post created",
       job: post,
@@ -511,7 +528,7 @@ export const createOfflinePost = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("🔥 CREATE OFFLINE POST ERROR:", err.message, err.stack);
     res.status(500).json({ msg: "Server error" });
   }
 };
