@@ -11,6 +11,7 @@ import {
   getLocationFromCoordinates,
   urgentSearchEmployees,
   searchLocationSuggestions,
+  createPostWithCredits,
 } from "../controllers/hirerPostController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -52,7 +53,7 @@ router.post(
   updatePostLocation
 );
 
-router.get("/geocode" ,  getLocationFromCoordinates);
+router.get("/geocode" , authMiddleware ,   getLocationFromCoordinates);
 
 router.get(
   "/urgent-search",
@@ -65,4 +66,19 @@ router.get(
   authMiddleware,
   searchLocationSuggestions
 );
+
+router.post(
+  "/create-with-credits",
+  authMiddleware,
+  (req, res, next) => {
+    upload.array("media", 6)(req, res, function (err) {
+      if (err) {
+        return res.status(400).json({ msg: err.message });
+      }
+      next();
+    });
+  },
+  createPostWithCredits
+);
+
 export default router;
