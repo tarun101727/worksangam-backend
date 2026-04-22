@@ -437,12 +437,11 @@ export const createOfflinePost = async (req, res) => {
     const hirerId = req.user.id;
 
     const user = await User.findById(hirerId);
-
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // 🔥 CREDIT CHECK
+    // ✅ CREDIT CHECK
     if (!user.credits || user.credits < 7) {
       return res.status(400).json({
         msg: "Not enough credits. Please purchase credits.",
@@ -457,7 +456,7 @@ export const createOfflinePost = async (req, res) => {
       minPrice,
       maxPrice,
       currency,
-      languages = []
+      languages = [],
     } = req.body;
 
     if (!profession || !description) {
@@ -486,10 +485,11 @@ export const createOfflinePost = async (req, res) => {
       price = { type: "inspect_quote", currency };
     }
 
-    // 🔥 DEDUCT CREDITS FIRST
+    // 🔥 STEP 1: DEDUCT CREDITS
     user.credits -= 7;
     await user.save();
 
+    // 🔥 STEP 2: CREATE JOB
     const post = await HirerPost.create({
       hirer: hirerId,
       profession,
@@ -504,6 +504,7 @@ export const createOfflinePost = async (req, res) => {
 
     io.emit("job-added-to-home", post);
 
+    // ✅ SEND UPDATED CREDITS
     res.json({
       msg: "Offline job post created",
       job: post,
