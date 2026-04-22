@@ -1,4 +1,3 @@
-
 import webpush from "../utils/push.js";
 import { subscriptions } from "../routes/pushRoutes.js";
 import HirerPost from "../models/HirerPost.js";
@@ -436,20 +435,59 @@ export const createOnlinePost = async (req, res) => {
 export const createOfflinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
-    const { profession, description, priceType, expectedPrice, minPrice, maxPrice, currency, languages = [] } = req.body;
 
-    if (!profession || !description) {
-      return res.status(400).json({ msg: "Profession and description required" });
+    const user = await User.findById(hirerId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
     }
 
+    // ✅ CREDIT CHECK
+    if (!user.credits || user.credits < 7) {
+      return res.status(400).json({
+        msg: "Not enough credits. Please purchase credits.",
+      });
+    }
+
+    const {
+      profession,
+      description,
+      priceType,
+      expectedPrice,
+      minPrice,
+      maxPrice,
+      currency,
+      languages = []
+    } = req.body;
+
+    if (!profession || !description) {
+      return res.status(400).json({
+        msg: "Profession and description required",
+      });
+    }
+
+    // ✅ DEDUCT CREDITS FIRST
+    user.credits -= 7;
+    await user.save();
+
     const prof = await Profession.findOne({ name: profession });
-    const professionType = prof?.type || "offline"; // default offline
+    const professionType = prof?.type || "offline";
 
     let price = null;
-if (priceType === "fixed") price = { type: "fixed", value: Number(expectedPrice), currency };
-else if (priceType === "hourly") price = { type: "hourly", value: Number(expectedPrice), currency };
-else if (priceType === "negotiable") price = { type: "negotiable", min: Number(minPrice), max: Number(maxPrice), currency };
-else if (priceType === "inspect_quote") price = { type: "inspect_quote", currency };
+
+    if (priceType === "fixed")
+      price = { type: "fixed", value: Number(expectedPrice), currency };
+    else if (priceType === "hourly")
+      price = { type: "hourly", value: Number(expectedPrice), currency };
+    else if (priceType === "negotiable")
+      price = {
+        type: "negotiable",
+        min: Number(minPrice),
+        max: Number(maxPrice),
+        currency,
+      };
+    else if (priceType === "inspect_quote")
+      price = { type: "inspect_quote", currency };
 
     const post = await HirerPost.create({
       hirer: hirerId,
@@ -465,7 +503,13 @@ else if (priceType === "inspect_quote") price = { type: "inspect_quote", currenc
 
     io.emit("job-added-to-home", post);
 
-    res.json({ msg: "Offline job post created", job: post });
+    // ✅ RETURN UPDATED CREDITS
+    res.json({
+      msg: "Offline job post created",
+      job: post,
+      remainingCredits: user.credits,
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
