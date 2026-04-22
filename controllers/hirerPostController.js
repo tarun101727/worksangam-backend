@@ -1,3 +1,4 @@
+
 import User from "../models/User.js";
 import HirerPost from "../models/HirerPost.js";
 import { io } from "../socket.js";
@@ -91,11 +92,11 @@ export const createPost = async (req, res) => {
       safetyWarnings,
     } = req.body;
 
-    /* ================= PARSE JSON ================= */
     if (safetyWarnings && typeof safetyWarnings === "string") {
-      safetyWarnings = JSON.parse(safetyWarnings);
-    }
+  safetyWarnings = JSON.parse(safetyWarnings);
+}
 
+    /* ================= PARSE JSON STRINGS ================= */
     if (location && typeof location === "string") {
       location = JSON.parse(location);
     }
@@ -108,7 +109,7 @@ export const createPost = async (req, res) => {
       preferredTime = JSON.parse(preferredTime);
     }
 
-    /* ================= VALIDATION ================= */
+    /* ================= BASIC VALIDATION ================= */
     if (!profession || !profession.trim()) {
       return res.status(400).json({ msg: "Profession is required" });
     }
@@ -120,23 +121,6 @@ export const createPost = async (req, res) => {
     if (!location?.coordinates?.length) {
       return res.status(400).json({ msg: "Location coordinates are required" });
     }
-
-    /* ================= 🔥 CREDIT LOGIC ================= */
-    const user = await User.findById(hirerId);
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    if (!user.credits || user.credits < 7) {
-      return res.status(400).json({
-        msg: "Not enough credits. Please purchase credits.",
-      });
-    }
-
-    // ✅ DEDUCT FIRST (VERY IMPORTANT)
-    user.credits -= 7;
-    await user.save();
 
     /* ================= PRICE VALIDATION ================= */
     if (price) {
@@ -157,51 +141,60 @@ export const createPost = async (req, res) => {
           return res.status(400).json({ msg: "Invalid price range" });
         }
       }
+
+      // inspect_quote → no validation needed
     }
 
-    /* ================= FILE UPLOAD ================= */
-    const files = req.files || [];
-    const media = [];
-
-    for (const file of files) {
-      const isVideo = file.mimetype.startsWith("video");
-
-      const result = await uploadToCloudinary(file, isVideo);
-
-      media.push({
-        url: result.secure_url,
-        type: isVideo ? "video" : "image",
-        public_id: result.public_id,
-      });
+    /* ================= PREFERRED TIME VALIDATION ================= */
+    if (
+      preferredTime &&
+      preferredTime.type === "custom" &&
+      (!preferredTime.from || !preferredTime.to)
+    ) {
+      return res.status(400).json({ msg: "Custom time range required" });
     }
+
+    /* ================= HANDLE FILES (CLOUDINARY) ================= */
+const files = req.files || [];
+
+const media = [];
+
+for (const file of files) {
+  const isVideo = file.mimetype.startsWith("video");
+
+  const result = await uploadToCloudinary(file, isVideo);
+
+  media.push({
+    url: result.secure_url,
+    type: isVideo ? "video" : "image",
+    public_id: result.public_id,
+  });
+}
 
     /* ================= CREATE POST ================= */
     const post = await HirerPost.create({
-      hirer: hirerId,
-      profession: profession.trim(),
-      description: description.trim(),
-      professionType: "offline",
-      price: price ? { ...price, currency: price.currency || "INR" } : null,
-      postType: postType || "normal",
-      preferredTime: preferredTime || null,
-      location: {
-        type: "Point",
-        coordinates: location.coordinates,
-        address: location.address,
-      },
-      addressDetails: addressDetails?.trim() || "",
-      safetyWarnings: safetyWarnings || {},
-      media,
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    });
+  hirer: hirerId,
+  profession: profession.trim(),
+  description: description.trim(),
+  professionType: "offline",
+  price: price ? { ...price, currency: price.currency || "INR" } : null,
+  postType: postType || "normal",
+  preferredTime: preferredTime || null,
+  location: {
+    type: "Point",
+    coordinates: location.coordinates,
+    address: location.address,
+  },
+  addressDetails: addressDetails?.trim() || "",
+  safetyWarnings: safetyWarnings || {},
+  media,
+  expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+});
 
-    /* ================= SUCCESS RESPONSE ================= */
     res.status(201).json({
       msg: "Post created successfully",
       job: post,
-      remainingCredits: user.credits, // ✅ IMPORTANT
     });
-
   } catch (err) {
     console.error("CREATE POST ERROR:", err);
     res.status(500).json({ msg: "Server error" });
