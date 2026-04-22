@@ -344,6 +344,19 @@ export const createOnlinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
 
+    const user = await User.findById(hirerId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // 🔥 CREDIT CHECK
+    if (!user.credits || user.credits < 5) {
+      return res.status(400).json({
+        msg: "Not enough credits. Please purchase credits.",
+      });
+    }
+
     const {
       profession,
       description,
@@ -356,10 +369,16 @@ export const createOnlinePost = async (req, res) => {
     } = req.body;
 
     if (!profession || !description) {
-      return res.status(400).json({ msg: "Profession and description required" });
+      return res.status(400).json({
+        msg: "Profession and description required",
+      });
     }
 
-    // ✅ FIX: Always force online
+    // 🔥 DEDUCT CREDITS FIRST
+    user.credits -= 5;
+    await user.save();
+
+    // ================= CREATE JOB =================
     const professionType = "online";
 
     let price = null;
@@ -373,7 +392,7 @@ export const createOnlinePost = async (req, res) => {
     const post = await HirerPost.create({
       hirer: hirerId,
       profession,
-      professionType, // ✅ always online now
+      professionType,
       description,
       price,
       postType: "normal",
@@ -382,28 +401,30 @@ export const createOnlinePost = async (req, res) => {
       languages,
     });
 
-    // 🔥 FIND MATCHING EMPLOYEES
-const employees = await User.find({
-  role: "employee",
-  profession: profession,
-  isAvailable: true
-}).select("_id");
+    // 🔥 SEND NOTIFICATIONS (existing logic)
+    const employees = await User.find({
+      role: "employee",
+      profession: profession,
+      isAvailable: true
+    }).select("_id");
 
-// 🔥 SEND REAL-TIME NOTIFICATION
-employees.forEach(emp => {
-  io.to(emp._id.toString()).emit("new-job-notification", {
-    type: "new_job",
-    postId: post._id,
-    profession: post.profession,
-    description: post.description,
-    price: post.price,
-    hirer: {
-      _id: hirerId
-    }
-  });
-});
+    employees.forEach(emp => {
+      io.to(emp._id.toString()).emit("new-job-notification", {
+        type: "new_job",
+        postId: post._id,
+        profession: post.profession,
+        description: post.description,
+        price: post.price,
+        hirer: { _id: hirerId }
+      });
+    });
 
-    res.json({ msg: "Online job post created", job: post });
+    // 🔥 RETURN UPDATED CREDITS
+    res.json({
+      msg: "Online job post created",
+      job: post,
+      remainingCredits: user.credits,
+    });
 
   } catch (err) {
     console.error(err);
