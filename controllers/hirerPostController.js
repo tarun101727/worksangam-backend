@@ -514,3 +514,109 @@ export const searchLocationSuggestions = async (req, res) => {
     res.status(500).json({ msg: "Failed to fetch suggestions" });
   }
 };
+
+
+export const createPostWithCredits = async (req, res) => {
+  try {
+    const hirerId = req.user.id;
+
+    const CREDIT_COST = 7;
+
+    // ✅ Get user
+    const user = await User.findById(hirerId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // ❌ Not enough credits
+    if ((user.credits || 0) < CREDIT_COST) {
+      return res.status(400).json({
+        msg: "Not enough credits. Please purchase credits.",
+      });
+    }
+
+    /* ================= PARSE BODY ================= */
+    let {
+      profession,
+      description,
+      price,
+      postType,
+      location,
+      preferredTime,
+      addressDetails,
+      safetyWarnings,
+    } = req.body;
+
+    if (safetyWarnings && typeof safetyWarnings === "string") {
+      safetyWarnings = JSON.parse(safetyWarnings);
+    }
+
+    if (location && typeof location === "string") {
+      location = JSON.parse(location);
+    }
+
+    if (price && typeof price === "string") {
+      price = JSON.parse(price);
+    }
+
+    if (preferredTime && typeof preferredTime === "string") {
+      preferredTime = JSON.parse(preferredTime);
+    }
+
+    /* ================= VALIDATION ================= */
+    if (!profession || !description || !location?.coordinates?.length) {
+      return res.status(400).json({ msg: "Missing required fields" });
+    }
+
+    /* ================= MEDIA ================= */
+    const files = req.files || [];
+    const media = [];
+
+    for (const file of files) {
+      const isVideo = file.mimetype.startsWith("video");
+
+      const result = await uploadToCloudinary(file, isVideo);
+
+      media.push({
+        url: result.secure_url,
+        type: isVideo ? "video" : "image",
+      });
+    }
+
+    /* ================= 🔥 ATOMIC OPERATION ================= */
+    // Deduct credits FIRST
+    user.credits -= CREDIT_COST;
+    await user.save();
+
+    // Then create post
+    const post = await HirerPost.create({
+      hirer: hirerId,
+      profession: profession.trim(),
+      description: description.trim(),
+      professionType: "offline",
+      price: price || null,
+      postType: postType || "normal",
+      preferredTime: preferredTime || null,
+      location: {
+        type: "Point",
+        coordinates: location.coordinates,
+        address: location.address,
+      },
+      addressDetails: addressDetails?.trim() || "",
+      safetyWarnings: safetyWarnings || {},
+      media,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    res.status(201).json({
+      msg: "Post created successfully",
+      job: post,
+      credits: user.credits, // ✅ return updated credits
+    });
+
+  } catch (err) {
+    console.error("CREATE POST WITH CREDIT ERROR:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
