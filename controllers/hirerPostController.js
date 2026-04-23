@@ -462,8 +462,13 @@ export const urgentSearchEmployees = async (req, res) => {
           },
         },
       },
-      { $sort: { distance: 1 } },
-      { $limit: 20 },
+      {
+  $sort: {
+    ratingAverage: -1,
+    ratingCount: -1
+  }
+},
+{ $limit: 5 }
     ]);
 
     res.json({
@@ -617,6 +622,41 @@ export const createPostWithCredits = async (req, res) => {
 
   } catch (err) {
     console.error("CREATE POST WITH CREDIT ERROR:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+export const confirmUrgentPost = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { postId } = req.params;
+
+    const user = await User.findById(userId);
+    const post = await HirerPost.findById(postId);
+
+    if (!post) return res.status(404).json({ msg: "Post not found" });
+
+    const COST = 15;
+
+    if ((user.credits || 0) < COST) {
+      return res.status(400).json({ msg: "Insufficient credits" });
+    }
+
+    // 💰 deduct credits
+    user.credits -= COST;
+    await user.save();
+
+    // 🚨 mark urgent
+    post.postType = "urgent";
+    await post.save();
+
+    res.json({
+      msg: "Urgent activated",
+      credits: user.credits,
+    });
+
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
