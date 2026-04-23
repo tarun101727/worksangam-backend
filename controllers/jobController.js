@@ -588,3 +588,71 @@ export const deleteJob = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+
+export const createOnlineUrgentPost = async (req, res) => {
+  try {
+    const hirerId = req.user.id;
+
+    const user = await User.findById(hirerId);
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    // 🔥 URGENT COST = 10 credits
+    if (!user.credits || user.credits < 10) {
+      return res.status(400).json({
+        msg: "Not enough credits for urgent post",
+      });
+    }
+
+    const {
+      profession,
+      description,
+      priceType,
+      expectedPrice,
+      minPrice,
+      maxPrice,
+      currency,
+      languages = []
+    } = req.body;
+
+    if (!profession || !description) {
+      return res.status(400).json({
+        msg: "Profession and description required",
+      });
+    }
+
+    // 🔥 DEDUCT 10 credits
+    user.credits -= 10;
+    await user.save();
+
+    let price = null;
+    if (priceType === "fixed") {
+      price = { type: "fixed", value: expectedPrice, currency };
+    }
+    if (priceType === "negotiable") {
+      price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+    }
+
+    const post = await HirerPost.create({
+      hirer: hirerId,
+      profession,
+      professionType: "online",
+      description,
+      price,
+      postType: "urgent", // ✅ IMPORTANT
+      status: "pending",
+      expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // 🔥 shorter = urgent
+      languages,
+    });
+
+    res.json({
+      msg: "Urgent online job created",
+      job: post,
+      remainingCredits: user.credits,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
