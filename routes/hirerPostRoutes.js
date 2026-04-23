@@ -12,6 +12,7 @@ import {
   urgentSearchEmployees,
   searchLocationSuggestions,
   createPostWithCredits,
+  confirmUrgentPost,
 } from "../controllers/hirerPostController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -80,5 +81,7 @@ router.post(
   },
   createPostWithCredits
 );
+
+router.post("/confirm-urgent/:postId", authMiddleware, confirmUrgentPost);
 
 export default router;
