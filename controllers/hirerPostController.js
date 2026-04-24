@@ -659,9 +659,21 @@ export const createUrgentPostWithCredits = async (req, res) => {
       safetyWarnings = JSON.parse(safetyWarnings);
     }
 
-    if (!profession || !description || !location?.coordinates?.length) {
-      return res.status(400).json({ msg: "Missing required fields" });
-    }
+    if (!profession || !profession.trim()) {
+  return res.status(400).json({ msg: "Profession is required" });
+}
+
+if (!description || !description.trim()) {
+  return res.status(400).json({ msg: "Description is required" });
+}
+
+if (!addressDetails || !addressDetails.trim()) {
+  return res.status(400).json({ msg: "Address is required" });
+}
+
+if (!location?.coordinates?.length) {
+  return res.status(400).json({ msg: "Location is required" });
+}
 
     // 🔥 1. Deduct credits FIRST
     user.credits -= CREDIT_COST;
