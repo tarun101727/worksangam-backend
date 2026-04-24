@@ -620,3 +620,79 @@ export const createPostWithCredits = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+export const createUrgentPostWithCredits = async (req, res) => {
+  try {
+    const hirerId = req.user.id;
+    const CREDIT_COST = 15;
+
+    const user = await User.findById(hirerId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if ((user.credits || 0) < CREDIT_COST) {
+      return res.status(400).json({
+        msg: "Not enough credits",
+      });
+    }
+
+    let {
+      profession,
+      description,
+      location,
+      addressDetails,
+      preferredTime,
+      safetyWarnings,
+    } = req.body;
+
+    if (location && typeof location === "string") {
+      location = JSON.parse(location);
+    }
+
+    if (preferredTime && typeof preferredTime === "string") {
+      preferredTime = JSON.parse(preferredTime);
+    }
+
+    if (safetyWarnings && typeof safetyWarnings === "string") {
+      safetyWarnings = JSON.parse(safetyWarnings);
+    }
+
+    if (!profession || !description || !location?.coordinates?.length) {
+      return res.status(400).json({ msg: "Missing required fields" });
+    }
+
+    // 🔥 1. Deduct credits FIRST
+    user.credits -= CREDIT_COST;
+    await user.save();
+
+    // 🔥 2. Create urgent post
+    const post = await HirerPost.create({
+      hirer: hirerId,
+      profession: profession.trim(),
+      description: description.trim(),
+      postType: "urgent", // IMPORTANT
+      professionType: "offline",
+      location: {
+        type: "Point",
+        coordinates: location.coordinates,
+        address: location.address,
+      },
+      addressDetails: addressDetails || "",
+      preferredTime: preferredTime || null,
+      safetyWarnings: safetyWarnings || {},
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    res.json({
+      msg: "Urgent post created",
+      job: post,
+      credits: user.credits,
+    });
+
+  } catch (err) {
+    console.error("URGENT CREDIT ERROR:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
