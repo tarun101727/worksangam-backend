@@ -12,6 +12,7 @@ import {
   urgentSearchEmployees,
   searchLocationSuggestions,
   createPostWithCredits,
+  createUrgentPostWithCredits,
 } from "../controllers/hirerPostController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -80,5 +81,19 @@ router.post(
   },
   createPostWithCredits
 );
+
+
+router.post(
+  "/create-urgent-with-credits",
+  authMiddleware,
+  (req, res, next) => {
+    upload.array("media", 6)(req, res, function (err) {
+      if (err) return res.status(400).json({ msg: err.message });
+      next();
+    });
+  },
+  createUrgentPostWithCredits
+);
+
 
 export default router;
