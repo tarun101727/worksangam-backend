@@ -59,7 +59,9 @@ export const getComments = async (req, res) => {
 
 export const toggleLike = async (req, res) => {
   try {
-
+    if (!req.user) {
+      return res.status(401).json({ msg: "Guests cannot like comments" });
+    }
     const userId = req.user.id;
     const { commentId } = req.params;
 
