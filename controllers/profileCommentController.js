@@ -4,22 +4,22 @@ import { io } from "../socket.js";
 export const addComment = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId);
-
-    if (user.isGuest) {
-      return res.status(403).json({ msg: "Comment / reply can't be posted in guest mode" });
-    }
-
     const { profileId, text, parentComment } = req.body;
 
     let depth = 0;
 
     if (parentComment) {
       const parent = await ProfileComment.findById(parentComment);
-      if (!parent) return res.status(404).json({ msg: "Parent comment not found" });
+
+      if (!parent) {
+        return res.status(404).json({ msg: "Parent comment not found" });
+      }
 
       depth = parent.depth + 1;
-      if (depth > 4) return res.status(400).json({ msg: "Max reply depth reached" });
+
+      if (depth > 4) {
+        return res.status(400).json({ msg: "Max reply depth reached" });
+      }
     }
 
     const comment = await ProfileComment.create({
