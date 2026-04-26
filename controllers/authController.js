@@ -1020,8 +1020,16 @@ export const toggleAvailability = async (req, res) => {
 export const rateEmployee = async (req, res) => {
   try {
     const hirerId = req.user.id;
-    const { employeeId, rating } = req.body;
+    const hirer = await User.findById(hirerId);
 
+    if (!hirer) return res.status(404).json({ msg: "User not found" });
+
+    // ✅ Prevent guests from rating
+    if (hirer.isGuest) {
+      return res.status(403).json({ msg: "Guests cannot rate employees" });
+    }
+
+    const { employeeId, rating } = req.body;
     if (!employeeId || rating == null) {
       return res.status(400).json({ msg: "Employee and rating required" });
     }
@@ -1030,7 +1038,7 @@ export const rateEmployee = async (req, res) => {
       return res.status(400).json({ msg: "Rating must be between 0.5 and 5" });
     }
 
-    if (Math.round(rating * 2) / 2 !== rating){
+    if (Math.round(rating * 2) / 2 !== rating) {
       return res.status(400).json({ msg: "Rating must be in 0.5 steps" });
     }
 
@@ -1047,23 +1055,16 @@ export const rateEmployee = async (req, res) => {
     if (existingRating) {
       existingRating.value = rating;
     } else {
-      employee.ratings.push({
-        hirer: hirerId,
-        value: rating
-      });
+      employee.ratings.push({ hirer: hirerId, value: rating });
     }
 
-    /* CALCULATE AVERAGE */
+    // Recalculate average
     const total = employee.ratings.reduce((sum, r) => sum + r.value, 0);
-
     employee.ratingCount = employee.ratings.length;
-    employee.ratingAverage = Number(
-      (total / employee.ratingCount).toFixed(1)
-    );
+    employee.ratingAverage = Number((total / employee.ratingCount).toFixed(1));
 
     await employee.save();
 
-    /* 🔥 LIVE SOCKET UPDATE */
     io.to(`profile-${employeeId}`).emit("employee-rating-updated", {
       employeeId: employee._id,
       ratingAverage: employee.ratingAverage,
@@ -1073,9 +1074,8 @@ export const rateEmployee = async (req, res) => {
     res.json({
       msg: "Rating saved",
       ratingAverage: employee.ratingAverage,
-      ratingCount: employee.ratingCount
+      ratingCount: employee.ratingCount,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
