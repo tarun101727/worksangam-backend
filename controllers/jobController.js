@@ -123,7 +123,8 @@ export const getJobById = async (req, res) => {
     const { jobId } = req.params;
 
     const job = await HirerPost.findById(jobId)
-      .populate("hirer", "firstName lastName profileImage");
+      .populate("hirer", "firstName lastName profileImage avatarColor avatarInitial")
+      .select("+languages"); // ✅ important
 
     if (!job) {
       return res.status(404).json({ msg: "Job not found" });
