@@ -70,15 +70,17 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
 
-  const { message } = req.body;
+  const { message, replyTo, replyText } = req.body;
 
   const encrypted = encryptMessage(message);
 
   const msg = await Message.create({
-    chatId: req.params.chatId,
-    sender: req.user.id,
-    encryptedMessage: encrypted
-  });
+  chatId: req.params.chatId,
+  sender: req.user.id,
+  encryptedMessage: encrypted,
+  replyTo: replyTo || null,
+  replyText: replyText || ""
+});
 
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
