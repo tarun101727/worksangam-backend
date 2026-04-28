@@ -183,3 +183,34 @@ export const markChatNotificationsRead = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+export const deleteMessage = async (req, res) => {
+  try {
+    const msg = await Message.findById(req.params.id);
+
+    if (!msg) {
+      return res.status(404).json({ msg: "Message not found" });
+    }
+
+    if (msg.sender.toString() !== req.user.id) {
+      return res.status(403).json({ msg: "Unauthorized" });
+    }
+
+    await Message.findByIdAndDelete(req.params.id);
+
+    res.json({ msg: "Deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+export const reportMessage = async (req, res) => {
+  try {
+    console.log("Reported Message:", req.params.id, "By:", req.user.id);
+
+    res.json({ msg: "Reported successfully" });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error" });
+  }
+};
