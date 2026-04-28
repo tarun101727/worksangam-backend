@@ -18,7 +18,20 @@ const messageSchema = new mongoose.Schema({
 
   image:{
   type:String
-}
+} ,
+
+
+replyTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Message",
+    default: null,
+  },
+
+  replyText: {
+    type: String,
+    default: "",
+  }
+
 
 }, { timestamps: true });
 
