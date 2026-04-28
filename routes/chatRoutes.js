@@ -3,10 +3,12 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import multer from "multer";
 import {
   createChat,
+  deleteMessage,
   getChatNotifications,
   getChats,
   getMessages,
   markChatNotificationsRead,
+  reportMessage,
   sendMedia,
   sendMessage
 } from "../controllers/chatController.js";
@@ -59,5 +61,8 @@ router.post(
 
 router.get("/notifications", authMiddleware, getChatNotifications);
 router.put("/notifications/read", authMiddleware, markChatNotificationsRead);
+
+router.delete("/message/:id", authMiddleware, deleteMessage);
+router.post("/report/:id", authMiddleware, reportMessage);
 
 export default router;
