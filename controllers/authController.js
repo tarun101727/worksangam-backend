@@ -332,24 +332,25 @@ export const createAccount = async (req, res) => {
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
 
-    // 🔥 STEP 5: UPDATE USER
     const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        firstName,
-        lastName,
-        age: ageNum,
-        gender,
-        genderLabel,
-        profileImage,
-        avatarInitial,
-        avatarColor,
-        isGuest: false,
-        onboardingStep: "completed",
-        role: "hirer", // ✅ ENSURE ROLE IS SET
-      },
-      { new: true }
-    );
+  userId,
+  {
+    firstName,
+    lastName,
+    age: ageNum,
+    gender,
+    genderLabel,
+    profileImage,
+    avatarInitial,
+    avatarColor,
+    isGuest: false,
+    onboardingStep: "completed",
+    role: "hirer",
+
+    credits: 10
+  },
+  { new: true }
+);
 
     res.json({ msg: "Account completed", user: updatedUser });
 
@@ -813,7 +814,6 @@ export const deleteAccount = async (req, res) => {
 
 
 // authController.js
-
 export const createGuestUser = async (req, res) => {
   try {
     const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
@@ -935,21 +935,23 @@ export const createEmployeeAccount = async (req, res) => {
     }
 
     const updateData = {
-      firstName,
-      lastName,
-      age: Number(age),
-      gender,
-      genderLabel,
-      skills,
-      experience: Number(experience),
-      bio,
-      languages: languages.split(",").map((l) => l.trim()),
-      avatarInitial: firstName.charAt(0).toUpperCase(),
-      avatarColor: getAvatarColor(firstName),
-      role: "employee",        // still keep (safe)
-      isGuest: false,          // still keep (safe)
-      onboardingStep: "completed",
-    };
+  firstName,
+  lastName,
+  age: Number(age),
+  gender,
+  genderLabel,
+  skills,
+  experience: Number(experience),
+  bio,
+  languages: languages.split(",").map((l) => l.trim()),
+  avatarInitial: firstName.charAt(0).toUpperCase(),
+  avatarColor: getAvatarColor(firstName),
+  role: "employee",
+  isGuest: false,
+  onboardingStep: "completed",
+
+  credits: 10
+};
 
     // Only update profession if changed
     if (profession && profession !== user.profession) {
