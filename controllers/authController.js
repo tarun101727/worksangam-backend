@@ -1555,3 +1555,33 @@ export const getUserCredits = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+export const claimFreeSignupCredits = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // already claimed
+    if (user.freeCreditClaimed) {
+      return res.status(400).json({ msg: "Already claimed" });
+    }
+
+    user.credits = (user.credits || 0) + 10;
+    user.freeCreditClaimed = true;
+
+    await user.save();
+
+    res.json({
+      msg: "10 free credits added",
+      credits: user.credits,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
