@@ -34,7 +34,7 @@ getCurrentUser,
   translateHandler,
   updateUserLanguage,
   getUserCredits,
-  claimFreeSignupCredits,
+  claimWelcomeBonus,
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -123,9 +123,9 @@ router.get('/get-current-user', authMiddleware, getCurrentUser);
 router.post('/login', login);
 
 router.post(
-  "/claim-free-credits",
+  "/claim-welcome-bonus",
   authMiddleware,
-  claimFreeSignupCredits
+  claimWelcomeBonus
 );
 
 
