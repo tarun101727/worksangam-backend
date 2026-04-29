@@ -347,7 +347,7 @@ export const createAccount = async (req, res) => {
     onboardingStep: "completed",
     role: "hirer",
 
-    credits: 10
+    credits: 0
   },
   { new: true }
 );
@@ -950,7 +950,7 @@ export const createEmployeeAccount = async (req, res) => {
   isGuest: false,
   onboardingStep: "completed",
 
-  credits: 10
+  credits: 0
 };
 
     // Only update profession if changed
