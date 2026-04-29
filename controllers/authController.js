@@ -398,7 +398,7 @@ export const getCurrentUser = async (req, res) => {
   profession skills experience languages bio
   profileImage
   avatarInitial avatarColor
-  isGuest location onboardingStep isAvailable ratingAverage ratingCount ratings
+  isGuest location onboardingStep isAvailable ratingAverage ratingCount ratings freeCreditClaimed credits
   `
 );
 
