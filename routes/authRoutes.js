@@ -34,6 +34,7 @@ getCurrentUser,
   translateHandler,
   updateUserLanguage,
   getUserCredits,
+  claimFreeSignupCredits,
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -120,6 +121,14 @@ router.post('/signup', signup); // ✅ Add multer upload
 router.get('/get-current-user', authMiddleware, getCurrentUser);
 
 router.post('/login', login);
+
+router.post(
+  "/claim-free-credits",
+  authMiddleware,
+  claimFreeSignupCredits
+);
+
+
 router.post('/send-otp-forgot-password', sendOtpForgotPassword);
 router.post('/reset-password', resetPassword);
 // Verify OTP for Forgot Password
