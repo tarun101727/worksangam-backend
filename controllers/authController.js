@@ -332,25 +332,24 @@ export const createAccount = async (req, res) => {
     const avatarInitial = firstName.charAt(0).toUpperCase();
     const avatarColor = getAvatarColor(firstName);
 
+    // 🔥 STEP 5: UPDATE USER
     const updatedUser = await User.findByIdAndUpdate(
-  userId,
-  {
-    firstName,
-    lastName,
-    age: ageNum,
-    gender,
-    genderLabel,
-    profileImage,
-    avatarInitial,
-    avatarColor,
-    isGuest: false,
-    onboardingStep: "completed",
-    role: "hirer",
-
-    credits: 0
-  },
-  { new: true }
-);
+      userId,
+      {
+        firstName,
+        lastName,
+        age: ageNum,
+        gender,
+        genderLabel,
+        profileImage,
+        avatarInitial,
+        avatarColor,
+        isGuest: false,
+        onboardingStep: "completed",
+        role: "hirer", // ✅ ENSURE ROLE IS SET
+      },
+      { new: true }
+    );
 
     res.json({ msg: "Account completed", user: updatedUser });
 
@@ -398,7 +397,7 @@ export const getCurrentUser = async (req, res) => {
   profession skills experience languages bio
   profileImage
   avatarInitial avatarColor
-  isGuest location onboardingStep isAvailable ratingAverage ratingCount ratings freeCreditClaimed credits
+  isGuest location onboardingStep isAvailable ratingAverage ratingCount ratings credits welcomeBonusClaimed
   `
 );
 
@@ -935,23 +934,21 @@ export const createEmployeeAccount = async (req, res) => {
     }
 
     const updateData = {
-  firstName,
-  lastName,
-  age: Number(age),
-  gender,
-  genderLabel,
-  skills,
-  experience: Number(experience),
-  bio,
-  languages: languages.split(",").map((l) => l.trim()),
-  avatarInitial: firstName.charAt(0).toUpperCase(),
-  avatarColor: getAvatarColor(firstName),
-  role: "employee",
-  isGuest: false,
-  onboardingStep: "completed",
-
-  credits: 0
-};
+      firstName,
+      lastName,
+      age: Number(age),
+      gender,
+      genderLabel,
+      skills,
+      experience: Number(experience),
+      bio,
+      languages: languages.split(",").map((l) => l.trim()),
+      avatarInitial: firstName.charAt(0).toUpperCase(),
+      avatarColor: getAvatarColor(firstName),
+      role: "employee",        // still keep (safe)
+      isGuest: false,          // still keep (safe)
+      onboardingStep: "completed",
+    };
 
     // Only update profession if changed
     if (profession && profession !== user.profession) {
@@ -1556,32 +1553,29 @@ export const getUserCredits = async (req, res) => {
   }
 };
 
-export const claimFreeSignupCredits = async (req, res) => {
+export const claimWelcomeBonus = async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    const user = await User.findById(userId);
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // already claimed
-    if (user.freeCreditClaimed) {
+    if (user.welcomeBonusClaimed) {
       return res.status(400).json({ msg: "Already claimed" });
     }
 
-    user.credits = (user.credits || 0) + 10;
-    user.freeCreditClaimed = true;
+    user.credits += 10;
+    user.welcomeBonusClaimed = true;
 
     await user.save();
 
     res.json({
-      msg: "10 free credits added",
-      credits: user.credits,
+      msg: "Bonus claimed",
+      credits: user.credits
     });
+
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
