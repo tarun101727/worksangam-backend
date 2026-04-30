@@ -36,7 +36,8 @@ initSocket(server);
 const allowedOrigins = [
   "https://www.worksangam.in",
   "https://worksangam.in",
-  "https://worksangam-frontend1-c7s1fbp3i-tarun101727s-projects.vercel.app", // ADD THIS
+  "https://worksangam-frontend1-c7s1fbp3i-tarun101727s-projects.vercel.app",
+  "https://localhost"
 ];
 
 app.use(cors({
