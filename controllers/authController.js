@@ -37,24 +37,26 @@ function is18OrOlder(dob) {
 const setAuthCookie = (res, token, user) => {
   const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   res.cookie('token', token, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'None',
+    secure: isProduction,                 // ✅ HTTPS only in prod
+    sameSite: isProduction ? 'None' : 'Lax',
     maxAge: tenYearsInMs,
   });
 
   res.cookie('username', user.firstName || 'Guest', {
     httpOnly: false,
-    secure: true,
-    sameSite: 'None',
+    secure: isProduction,
+    sameSite: 'Lax',
     maxAge: tenYearsInMs,
   });
 
   res.cookie('userId', user._id.toString(), {
     httpOnly: false,
-    secure: true,
-    sameSite: 'None',
+    secure: isProduction,
+    sameSite: 'Lax',
     maxAge: tenYearsInMs,
   });
 };
@@ -266,11 +268,10 @@ if (user) {
     setAuthCookie(res, token, user);
 
     res.json({
-  msg:'OTP verified',
-  userId:user._id,
-  role:user.role,
-  token
-});
+      msg: 'OTP verified',
+      userId: user._id,
+      role: user.role,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
