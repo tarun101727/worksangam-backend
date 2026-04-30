@@ -2,7 +2,6 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import http from 'http';
-import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import jobRoutes from "./routes/jobRoutes.js";
 import authRoutes from './routes/authRoutes.js';
@@ -60,7 +59,6 @@ app.use(cors({
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
-app.use(cookieParser());
 
 /* -------------------- Routes -------------------- */
 app.get('/favicon.ico', (_, res) => res.sendStatus(204));
