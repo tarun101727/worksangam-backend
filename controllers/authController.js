@@ -266,10 +266,11 @@ if (user) {
     setAuthCookie(res, token, user);
 
     res.json({
-      msg: 'OTP verified',
-      userId: user._id,
-      role: user.role,
-    });
+  msg: 'OTP verified',
+  userId: user._id,
+  role: user.role,
+  token
+});
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
