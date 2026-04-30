@@ -37,26 +37,24 @@ function is18OrOlder(dob) {
 const setAuthCookie = (res, token, user) => {
   const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
 
-  const isProduction = process.env.NODE_ENV === 'production';
-
   res.cookie('token', token, {
     httpOnly: true,
-    secure: isProduction,                 // ✅ HTTPS only in prod
-    sameSite: isProduction ? 'None' : 'Lax',
+    secure: true,
+    sameSite: 'None',
     maxAge: tenYearsInMs,
   });
 
   res.cookie('username', user.firstName || 'Guest', {
     httpOnly: false,
-    secure: isProduction,
-    sameSite: 'Lax',
+    secure: true,
+    sameSite: 'None',
     maxAge: tenYearsInMs,
   });
 
   res.cookie('userId', user._id.toString(), {
     httpOnly: false,
-    secure: isProduction,
-    sameSite: 'Lax',
+    secure: true,
+    sameSite: 'None',
     maxAge: tenYearsInMs,
   });
 };
