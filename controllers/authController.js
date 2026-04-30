@@ -266,9 +266,9 @@ if (user) {
     setAuthCookie(res, token, user);
 
     res.json({
-  msg: 'OTP verified',
-  userId: user._id,
-  role: user.role,
+  msg:'OTP verified',
+  userId:user._id,
+  role:user.role,
   token
 });
   } catch (err) {
