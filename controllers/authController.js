@@ -11,10 +11,8 @@ import OTP from '../models/OTP.js';
 import { io } from "../socket.js";
 import { validateEmail } from "../utils/emailValidator.js";
 import DeleteReason from "../models/DeleteReason.js";
-import cloudinary from "../config/cloudinary.js";
+import cloudinary from "./config/cloudinary.js";
 import Profession from "../models/Profession.js" 
-
-
 
 const MIN_AGE = 18;
 const MAX_AGE = 100;
