@@ -32,6 +32,34 @@ function is18OrOlder(dob) {
   return age;
 }
 
+const setAuthCookie = (res, token, user) => {
+  const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: isProduction,                 // ✅ HTTPS only in prod
+    sameSite: isProduction ? 'None' : 'Lax',
+    maxAge: tenYearsInMs,
+  });
+
+  res.cookie('username', user.firstName || 'Guest', {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: 'Lax',
+    maxAge: tenYearsInMs,
+  });
+
+  res.cookie('userId', user._id.toString(), {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: 'Lax',
+    maxAge: tenYearsInMs,
+  });
+};
+
+
 const AVATAR_COLORS = [
   '#C9A24D',
   '#1C1C1C',
@@ -229,12 +257,16 @@ if (user) {
 
     await OTP.deleteMany({ email: normalizedEmail });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '10y' });
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
+    setAuthCookie(res, token, user);
 
     res.json({
       msg: 'OTP verified',
-      token,
       userId: user._id,
       role: user.role,
     });
@@ -403,12 +435,18 @@ export const login = async (req, res) => {
       await User.findByIdAndDelete(guestUser._id);
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '10y' });
+    // Create JWT
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
+    // Set auth cookie
+    setAuthCookie(res, token, user);
 
     res.json({
       msg: 'Login successful',
-      token,
       user: {
         _id: user._id,
         email: user.email,
@@ -587,13 +625,16 @@ if (req.file) {
 
     await admin.save();
 
-    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '10y' });
+    const token = jwt.sign(
+      { id: admin._id, role: admin.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
-
+    setAuthCookie(res, token, admin);
 
     res.status(201).json({
       msg: `${admin.role.toUpperCase()} account created`,
-      token,
       user: admin,
     });
   } catch (err) {
@@ -628,12 +669,17 @@ export const adminLogin = async (req, res) => {
       return res.status(400).json({ msg: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '10y' });
+    const token = jwt.sign(
+  { id: admin._id, role: admin.role },
+  process.env.JWT_SECRET,
+  { expiresIn: "10y" }
+);
 
+
+    setAuthCookie(res, token, admin);
 
     res.status(201).json({
   msg: `${admin.role.toUpperCase()} account created`,
-  token,
   user: {
     _id: admin._id,
     email: admin.email,
@@ -785,11 +831,16 @@ export const createGuestUser = async (req, res) => {
 
     await guestUser.save();
 
-    const token = jwt.sign({ id: guestUser._id }, process.env.JWT_SECRET, { expiresIn: '10y' });
+    const token = jwt.sign(
+      { id: guestUser._id, role: 'guest' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
+
+    setAuthCookie(res, token, guestUser);
 
     res.status(201).json({
       msg: 'Guest created',
-      token,
       user: {
         _id: guestUser._id,
         role: guestUser.role,
