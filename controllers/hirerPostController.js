@@ -2,7 +2,7 @@ import User from "../models/User.js";
 import HirerPost from "../models/HirerPost.js";
 import { io } from "../socket.js";
 import axios from "axios";
-import cloudinary from "./config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 
 const uploadToCloudinary = (file, isVideo) => {
