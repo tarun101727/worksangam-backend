@@ -1,4 +1,4 @@
-import cloudinary from "./config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
