@@ -32,34 +32,6 @@ function is18OrOlder(dob) {
   return age;
 }
 
-const setAuthCookie = (res, token, user) => {
-  const tenYearsInMs = 10 * 365 * 24 * 60 * 60 * 1000;
-
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: isProduction,                 // ✅ HTTPS only in prod
-    sameSite: isProduction ? 'None' : 'Lax',
-    maxAge: tenYearsInMs,
-  });
-
-  res.cookie('username', user.firstName || 'Guest', {
-    httpOnly: false,
-    secure: isProduction,
-    sameSite: 'Lax',
-    maxAge: tenYearsInMs,
-  });
-
-  res.cookie('userId', user._id.toString(), {
-    httpOnly: false,
-    secure: isProduction,
-    sameSite: 'Lax',
-    maxAge: tenYearsInMs,
-  });
-};
-
-
 const AVATAR_COLORS = [
   '#C9A24D',
   '#1C1C1C',
