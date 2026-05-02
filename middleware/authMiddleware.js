@@ -5,10 +5,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const authMiddleware = async (req, res, next) => {
-  const token = req.cookies.token;
+  // Step 1: Try cookie first
+  let token = req.cookies?.token;
+
+  // Step 2: If no cookie, check Authorization header (Bearer token)
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
 
   if (!token) {
-    return res.status(401).json({ msg: 'No token provided in cookies' });
+    return res.status(401).json({ msg: 'No token provided' });
   }
 
   try {
@@ -19,11 +25,11 @@ const authMiddleware = async (req, res, next) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    req.user = user; // ✅ Attach the user to request
+    req.user = user; // attach user
     next();
   } catch (err) {
     console.error('Auth error:', err);
-    return res.status(401).json({ msg: 'Token not valid' });
+    return res.status(401).json({ msg: 'Token not valid or expired' });
   }
 };
 
