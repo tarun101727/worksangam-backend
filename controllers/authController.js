@@ -320,6 +320,9 @@ export const createAccount = async (req, res) => {
     // 🔥 STEP 3: HANDLE IMAGE
     let profileImage = existingUser.profileImage || null;
 
+    console.log("BODY =>", req.body);
+console.log("FILE =>", req.file);
+
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "profile_images",
