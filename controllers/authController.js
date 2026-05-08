@@ -259,17 +259,20 @@ if (user) {
 
     await OTP.deleteMany({ email: normalizedEmail });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
     setAuthCookie(res, token, user);
 
     res.json({
-      msg: 'OTP verified',
-      token ,
-      userId: user._id,
-      role: user.role,
-    });
+  msg: 'OTP verified',
+  token,
+  userId: user._id,
+  role: user.role,
+});
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
@@ -435,14 +438,18 @@ export const login = async (req, res) => {
       await User.findByIdAndDelete(guestUser._id);
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    // Create JWT
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
     // Set auth cookie
     setAuthCookie(res, token, user);
 
     res.json({
       msg: 'Login successful',
-      token,
       user: {
         _id: user._id,
         email: user.email,
@@ -622,17 +629,15 @@ if (req.file) {
     await admin.save();
 
     const token = jwt.sign(
-  { id: admin._id },
-  process.env.JWT_SECRET,
-  { expiresIn: '30d' }
-);
-
+      { id: admin._id, role: admin.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
     setAuthCookie(res, token, admin);
 
     res.status(201).json({
       msg: `${admin.role.toUpperCase()} account created`,
-      token,
       user: admin,
     });
   } catch (err) {
@@ -667,16 +672,17 @@ export const adminLogin = async (req, res) => {
       return res.status(400).json({ msg: "Invalid credentials" });
     }
 
-   const token = jwt.sign(
-  { id: admin._id },
+    const token = jwt.sign(
+  { id: admin._id, role: admin.role },
   process.env.JWT_SECRET,
-  { expiresIn: '30d' }
+  { expiresIn: "10y" }
 );
+
+
     setAuthCookie(res, token, admin);
 
     res.status(201).json({
   msg: `${admin.role.toUpperCase()} account created`,
-  token,
   user: {
     _id: admin._id,
     email: admin.email,
@@ -829,17 +835,15 @@ export const createGuestUser = async (req, res) => {
     await guestUser.save();
 
     const token = jwt.sign(
-  { id: guestUser._id },
-  process.env.JWT_SECRET,
-  { expiresIn: '30d' }
-);
-
+      { id: guestUser._id, role: 'guest' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10y' }
+    );
 
     setAuthCookie(res, token, guestUser);
 
     res.status(201).json({
       msg: 'Guest created',
-      token,
       user: {
         _id: guestUser._id,
         role: guestUser.role,
