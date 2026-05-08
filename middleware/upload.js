@@ -22,8 +22,35 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) cb(null, true);
-  else cb(new Error('Only images allowed'), false);
+
+  console.log("FILE MIME =>", file.mimetype);
+  console.log("FILE NAME =>", file.originalname);
+
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "application/octet-stream",
+  ];
+
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  const allowedExtensions = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+  ];
+
+  if (
+    allowedMimeTypes.includes(file.mimetype) ||
+    allowedExtensions.includes(ext)
+  ) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only images allowed"), false);
+  }
 };
 
 export const uploadAvatar = multer({
