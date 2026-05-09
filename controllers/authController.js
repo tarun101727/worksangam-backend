@@ -453,6 +453,7 @@ export const login = async (req, res) => {
 
     res.json({
       msg: 'Login successful',
+      token,
       user: {
         _id: user._id,
         email: user.email,
