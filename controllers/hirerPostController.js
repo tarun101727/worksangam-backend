@@ -351,19 +351,24 @@ export const getLocationFromCoordinates = async (req, res) => {
 
   try {
     const response = await axios.get(
-      "https://nominatim.openstreetmap.org/reverse",
-      {
-        params: {
-          lat,
-          lon: lng,
-          format: "json",
-          addressdetails: 1,
-        },
-        headers: {
-          "User-Agent": "MyJobApp/1.0 (support@myjobapp.com)",
-        },
-      }
-    );
+  "https://nominatim.openstreetmap.org/reverse",
+  {
+    params: {
+      lat,
+      lon: lng,
+      format: "jsonv2",
+      addressdetails: 1,
+    },
+
+    headers: {
+      "User-Agent":
+        "WorkSangam/1.0 (support@worksangam.com)",
+      "Accept-Language": "en",
+    },
+
+    timeout: 10000,
+  }
+);
 
     res.json({
       address: response.data.display_name || "Address not found",
