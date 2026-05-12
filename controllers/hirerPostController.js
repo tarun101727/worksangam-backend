@@ -635,9 +635,7 @@ export const createUrgentPostWithCredits = async (req, res) => {
     const user = await User.findById(hirerId);
 
     if (!user) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
+      return res.status(404).json({ msg: "User not found" });
     }
 
     if ((user.credits || 0) < CREDIT_COST) {
@@ -653,146 +651,66 @@ export const createUrgentPostWithCredits = async (req, res) => {
       addressDetails,
       preferredTime,
       safetyWarnings,
-      price,
     } = req.body;
-
-    /* ================= PARSE JSON ================= */
 
     if (location && typeof location === "string") {
       location = JSON.parse(location);
     }
 
-    if (
-      preferredTime &&
-      typeof preferredTime === "string"
-    ) {
+    if (preferredTime && typeof preferredTime === "string") {
       preferredTime = JSON.parse(preferredTime);
     }
 
-    if (
-      safetyWarnings &&
-      typeof safetyWarnings === "string"
-    ) {
+    if (safetyWarnings && typeof safetyWarnings === "string") {
       safetyWarnings = JSON.parse(safetyWarnings);
     }
 
-    if (price && typeof price === "string") {
-      price = JSON.parse(price);
-    }
-
-    /* ================= VALIDATION ================= */
-
     if (!profession || !profession.trim()) {
-      return res.status(400).json({
-        msg: "Profession is required",
-      });
-    }
+  return res.status(400).json({ msg: "Profession is required" });
+}
 
-    if (!description || !description.trim()) {
-      return res.status(400).json({
-        msg: "Description is required",
-      });
-    }
+if (!description || !description.trim()) {
+  return res.status(400).json({ msg: "Description is required" });
+}
 
-    if (
-      !addressDetails ||
-      !addressDetails.trim()
-    ) {
-      return res.status(400).json({
-        msg: "Address is required",
-      });
-    }
+if (!addressDetails || !addressDetails.trim()) {
+  return res.status(400).json({ msg: "Address is required" });
+}
 
-    if (!location?.coordinates?.length) {
-      return res.status(400).json({
-        msg: "Location is required",
-      });
-    }
+if (!location?.coordinates?.length) {
+  return res.status(400).json({ msg: "Location is required" });
+}
 
-    /* ================= HANDLE MEDIA ================= */
-
-    const files = req.files || [];
-
-    const media = [];
-
-    for (const file of files) {
-
-      const isVideo =
-        file.mimetype.startsWith("video");
-
-      const result =
-        await uploadToCloudinary(
-          file,
-          isVideo,
-        );
-
-      media.push({
-        url: result.secure_url,
-        type: isVideo
-          ? "video"
-          : "image",
-      });
-    }
-
-    /* ================= DEDUCT CREDITS ================= */
-
+    // 🔥 1. Deduct credits FIRST
     user.credits -= CREDIT_COST;
-
     await user.save();
 
-    /* ================= CREATE POST ================= */
-
+    // 🔥 2. Create urgent post
     const post = await HirerPost.create({
       hirer: hirerId,
-
       profession: profession.trim(),
-
       description: description.trim(),
-
-      postType: "urgent",
-
+      postType: "urgent", // IMPORTANT
       professionType: "offline",
-
-      price: price || null,
-
       location: {
         type: "Point",
-        coordinates:
-          location.coordinates,
+        coordinates: location.coordinates,
         address: location.address,
       },
-
-      addressDetails:
-        addressDetails || "",
-
-      preferredTime:
-        preferredTime || null,
-
-      safetyWarnings:
-        safetyWarnings || {},
-
-      media,
-
-      expiresAt: new Date(
-        Date.now() + 60 * 60 * 1000,
-      ),
+      addressDetails: addressDetails || "",
+      preferredTime: preferredTime || null,
+      safetyWarnings: safetyWarnings || {},
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 
-    res.status(201).json({
+    res.json({
       msg: "Urgent post created",
       job: post,
       credits: user.credits,
     });
 
   } catch (err) {
-
-    console.error(
-      "URGENT CREDIT ERROR:",
-      err,
-    );
-
-    res.status(500).json({
-      msg: err.message || "Server error",
-    });
+    console.error("URGENT CREDIT ERROR:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
