@@ -626,6 +626,7 @@ export const createPostWithCredits = async (req, res) => {
   }
 };
 
+
 export const createUrgentPostWithCredits = async (req, res) => {
   try {
     const hirerId = req.user.id;
@@ -680,56 +681,27 @@ if (!location?.coordinates?.length) {
   return res.status(400).json({ msg: "Location is required" });
 }
 
-/* ================= MEDIA ================= */
-
-const files = req.files || [];
-
-const media = [];
-
-for (const file of files) {
-
-  const isVideo = file.mimetype.startsWith("video");
-
-  const result = await uploadToCloudinary(file, isVideo);
-
-  media.push({
-    url: result.secure_url,
-    type: isVideo ? "video" : "image",
-  });
-}
-
     // 🔥 1. Deduct credits FIRST
     user.credits -= CREDIT_COST;
     await user.save();
 
     // 🔥 2. Create urgent post
     const post = await HirerPost.create({
-  hirer: hirerId,
-
-  profession: profession.trim(),
-
-  description: description.trim(),
-
-  postType: "urgent",
-
-  professionType: "offline",
-
-  location: {
-    type: "Point",
-    coordinates: location.coordinates,
-    address: location.address,
-  },
-
-  addressDetails: addressDetails || "",
-
-  preferredTime: preferredTime || null,
-
-  safetyWarnings: safetyWarnings || {},
-
-  media, // ADD THIS
-
-  expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-});
+      hirer: hirerId,
+      profession: profession.trim(),
+      description: description.trim(),
+      postType: "urgent", // IMPORTANT
+      professionType: "offline",
+      location: {
+        type: "Point",
+        coordinates: location.coordinates,
+        address: location.address,
+      },
+      addressDetails: addressDetails || "",
+      preferredTime: preferredTime || null,
+      safetyWarnings: safetyWarnings || {},
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
 
     res.json({
       msg: "Urgent post created",
