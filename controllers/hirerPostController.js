@@ -4,6 +4,7 @@ import { io } from "../socket.js";
 import axios from "axios";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
+import https from "https";
 
 const uploadToCloudinary = (file, isVideo) => {
   return new Promise((resolve, reject) => {
@@ -343,38 +344,68 @@ export const updatePostLocation = async (req, res) => {
 
 /* ================= REVERSE GEOCODING ================= */
 export const getLocationFromCoordinates = async (req, res) => {
-  const { lat, lng } = req.query;
-
-  if (!lat || !lng) {
-    return res.status(400).json({ msg: "Latitude and longitude are required" });
-  }
-
   try {
+
+    const { lat, lng } = req.query;
+
+    if (!lat || !lng) {
+
+      return res.status(400).json({
+        msg: "Latitude and longitude are required",
+      });
+    }
+
+    console.log("LAT:", lat);
+    console.log("LNG:", lng);
+
     const response = await axios.get(
-  "https://nominatim.openstreetmap.org/reverse",
-  {
-    params: {
-      lat,
-      lon: lng,
-      format: "jsonv2",
-      addressdetails: 1,
-    },
+      "https://nominatim.openstreetmap.org/reverse",
+      {
+        params: {
+          lat,
+          lon: lng,
+          format: "jsonv2",
+        },
 
-    headers: {
-      "User-Agent":
-        "WorkSangam/1.0 (support@worksangam.com)",
-      "Accept-Language": "en",
-    },
+        headers: {
+          "User-Agent":
+            "WorkSangamApp/1.0 (worksangamindia@gmail.com)",
+        },
 
-    timeout: 10000,
-  }
-);
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: true,
+        }),
 
-    res.json({
-      address: response.data.display_name || "Address not found",
+        timeout: 15000,
+      }
+    );
+
+    console.log(
+      "NOMINATIM RESPONSE:",
+      response.data
+    );
+
+    return res.status(200).json({
+      address:
+        response.data.display_name ||
+        "Address not found",
     });
+
   } catch (err) {
-    res.status(500).json({ msg: "Failed to fetch address" });
+
+    console.error(
+      "GEOCODE ERROR:",
+      err.response?.data ||
+      err.message ||
+      err
+    );
+
+    return res.status(500).json({
+      msg: "Failed to fetch address",
+      error:
+        err.response?.data ||
+        err.message,
+    });
   }
 };
 
