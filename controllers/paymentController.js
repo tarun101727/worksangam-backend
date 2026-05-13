@@ -60,8 +60,11 @@ export const createOrder = async (req, res) => {
 );
 
     res.json({
-      payment_session_id: response.data.payment_session_id,
-    });
+  payment_session_id:
+      response.data.payment_session_id,
+
+  order_id: orderId,
+});
 
   } catch (err) {
     console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
