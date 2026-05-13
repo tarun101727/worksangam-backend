@@ -8,20 +8,24 @@ import User from "../models/User.js";
 
 export const createOrder = async (req, res) => {
   try {
+
     const userId = req.user.id;
     const { amount } = req.body;
 
     const credits = CREDIT_PLANS[amount];
 
     if (!credits) {
-      return res.status(400).json({ msg: "Invalid plan" });
+      return res.status(400).json({
+        msg: "Invalid plan",
+      });
     }
 
-    // ✅ GET USER FROM DB
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ msg: "User not found" });
+      return res.status(404).json({
+        msg: "User not found",
+      });
     }
 
     const orderId = `order_${Date.now()}`;
@@ -33,40 +37,76 @@ export const createOrder = async (req, res) => {
       credits,
     });
 
+    // ✅ CASHFREE PAYMENT LINK API
     const response = await axios.post(
-  "https://api.cashfree.com/pg/orders",
-  {
-    order_id: orderId,
-    order_amount: amount,
-    order_currency: "INR",
+      "https://api.cashfree.com/pg/links",
+      {
+        customer_details: {
+          customer_name:
+            user.firstName || "User",
 
-    customer_details: {
-      customer_id: userId,
-      customer_email: user.email,
-      customer_phone:
-        "9" + Math.floor(100000000 + Math.random() * 900000000),
-    },
+          customer_email: user.email,
 
-    order_meta: {
-      return_url: `https://worksangam.in/payment-success?order_id=${orderId}`,
-    },
-  },
-  {
-    headers: {
-      "x-client-id": process.env.CASHFREE_APP_ID,
-      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-      "x-api-version": "2022-09-01",
-    },
-  }
-);
+          customer_phone:
+            "9" +
+            Math.floor(
+              100000000 +
+              Math.random() * 900000000
+            ),
+        },
 
+        link_notify: {
+          send_sms: false,
+          send_email: false,
+        },
+
+        link_id: orderId,
+
+        link_amount: amount,
+
+        link_currency: "INR",
+
+        link_purpose:
+          "WorkSangam Credits",
+
+        link_meta: {
+          return_url:
+            `https://worksangam.in/payment-success?order_id=${orderId}`,
+        },
+      },
+      {
+        headers: {
+          "x-client-id":
+            process.env.CASHFREE_APP_ID,
+
+          "x-client-secret":
+            process.env.CASHFREE_SECRET_KEY,
+
+          "x-api-version":
+            "2022-09-01",
+
+          "Content-Type":
+            "application/json",
+        },
+      }
+    );
+
+    // ✅ RETURN PAYMENT LINK
     res.json({
-      payment_session_id: response.data.payment_session_id,
+      payment_link:
+        response.data.link_url,
     });
 
   } catch (err) {
-    console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
-    res.status(500).json({ msg: "Order creation failed" });
+
+    console.error(
+      "🔥 CASHFREE ERROR:",
+      err.response?.data || err.message
+    );
+
+    res.status(500).json({
+      msg: "Order creation failed",
+    });
   }
 };
 
