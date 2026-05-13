@@ -32,41 +32,15 @@ export const createOrder = async (req, res) => {
       credits,
     });
 
-    const response = await axios.post(
-  "https://api.cashfree.com/pg/orders",
-  {
-    order_id: orderId,
-    order_amount: amount,
-    order_currency: "INR",
-
-    customer_details: {
-      customer_id: userId,
-      customer_email: user.email,
-      customer_phone:
-        "9" + Math.floor(100000000 + Math.random() * 900000000),
-    },
-
-    order_meta: {
-      return_url: `https://worksangam.in/payment-success?order_id=${orderId}`,
-    },
-  },
-  {
-    headers: {
-      "x-client-id": process.env.CASHFREE_APP_ID,
-      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-      "x-api-version": "2022-09-01",
-    },
-  }
-);
-
     res.json({
-  upi: {
-    pa: "worksangam@axl",
-    pn: "WorkSangam",
-    tn: `Buy ${credits} credits`,
-    am: amount,
-    cu: "INR",
-  },
+
+  order_id: orderId,
+
+  upi_id: "worksangam@ibl",
+
+  receiver_name: "Worksangam",
+
+  amount,
 });
 
   } catch (err) {
