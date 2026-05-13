@@ -1,3 +1,5 @@
+
+// controllers/paymentController.js
 import axios from "axios";
 import Payment from "../models/Payment.js";
 import { CREDIT_PLANS } from "../utils/creditPlans.js";
@@ -60,11 +62,8 @@ export const createOrder = async (req, res) => {
 );
 
     res.json({
-  payment_session_id:
-      response.data.payment_session_id,
-
-  order_id: orderId,
-});
+      payment_session_id: response.data.payment_session_id,
+    });
 
   } catch (err) {
     console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
