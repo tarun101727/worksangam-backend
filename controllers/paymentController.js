@@ -37,13 +37,19 @@ export const createOrder = async (req, res) => {
       credits,
     });
 
-    // ✅ CASHFREE PAYMENT LINK API
+    // ✅ CASHFREE ORDER API
     const response = await axios.post(
-      "https://api.cashfree.com/pg/links",
+      "https://api.cashfree.com/pg/orders",
       {
+        order_id: orderId,
+
+        order_amount: amount,
+
+        order_currency: "INR",
+
         customer_details: {
-          customer_name:
-            user.firstName || "User",
+
+          customer_id: userId,
 
           customer_email: user.email,
 
@@ -55,27 +61,14 @@ export const createOrder = async (req, res) => {
             ),
         },
 
-        link_notify: {
-          send_sms: false,
-          send_email: false,
-        },
-
-        link_id: orderId,
-
-        link_amount: amount,
-
-        link_currency: "INR",
-
-        link_purpose:
-          "WorkSangam Credits",
-
-        link_meta: {
+        order_meta: {
           return_url:
             `https://worksangam.in/payment-success?order_id=${orderId}`,
         },
       },
       {
         headers: {
+
           "x-client-id":
             process.env.CASHFREE_APP_ID,
 
@@ -91,10 +84,13 @@ export const createOrder = async (req, res) => {
       }
     );
 
-    // ✅ RETURN PAYMENT LINK
+    // ✅ SEND SESSION ID
     res.json({
-      payment_link:
-        response.data.link_url,
+
+      payment_session_id:
+        response.data.payment_session_id,
+
+      order_id: orderId,
     });
 
   } catch (err) {
