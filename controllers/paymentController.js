@@ -164,3 +164,48 @@ export const getUserPayments = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+export const verifyPayment = async (req, res) => {
+
+  try {
+
+    const { orderId } = req.body;
+
+    const payment =
+      await Payment.findOne({
+        orderId,
+      });
+
+    if (!payment) {
+
+      return res.status(404).json({
+        msg: "Payment not found",
+      });
+    }
+
+    if (payment.status === "SUCCESS") {
+
+      return res.json({
+
+        success: true,
+
+        msg:
+          "Credits added successfully",
+      });
+    }
+
+    return res.status(400).json({
+
+      msg: "Payment pending",
+    });
+
+  } catch (err) {
+
+    console.log(err);
+
+    res.status(500).json({
+
+      msg: "Server error",
+    });
+  }
+};
