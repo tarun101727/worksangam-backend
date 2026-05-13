@@ -1,4 +1,3 @@
-// controllers/paymentController.js
 import axios from "axios";
 import Payment from "../models/Payment.js";
 import { CREDIT_PLANS } from "../utils/creditPlans.js";
@@ -8,24 +7,20 @@ import User from "../models/User.js";
 
 export const createOrder = async (req, res) => {
   try {
-
     const userId = req.user.id;
     const { amount } = req.body;
 
     const credits = CREDIT_PLANS[amount];
 
     if (!credits) {
-      return res.status(400).json({
-        msg: "Invalid plan",
-      });
+      return res.status(400).json({ msg: "Invalid plan" });
     }
 
+    // ✅ GET USER FROM DB
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
+      return res.status(404).json({ msg: "User not found" });
     }
 
     const orderId = `order_${Date.now()}`;
@@ -37,72 +32,46 @@ export const createOrder = async (req, res) => {
       credits,
     });
 
-    // ✅ CASHFREE ORDER API
     const response = await axios.post(
-      "https://api.cashfree.com/pg/orders",
-      {
-        order_id: orderId,
+  "https://api.cashfree.com/pg/orders",
+  {
+    order_id: orderId,
+    order_amount: amount,
+    order_currency: "INR",
 
-        order_amount: amount,
+    customer_details: {
+      customer_id: userId,
+      customer_email: user.email,
+      customer_phone:
+        "9" + Math.floor(100000000 + Math.random() * 900000000),
+    },
 
-        order_currency: "INR",
+    order_meta: {
+      return_url: `https://worksangam.in/payment-success?order_id=${orderId}`,
+    },
+  },
+  {
+    headers: {
+      "x-client-id": process.env.CASHFREE_APP_ID,
+      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+      "x-api-version": "2022-09-01",
+    },
+  }
+);
 
-        customer_details: {
-
-          customer_id: userId,
-
-          customer_email: user.email,
-
-          customer_phone:
-            "9" +
-            Math.floor(
-              100000000 +
-              Math.random() * 900000000
-            ),
-        },
-
-        order_meta: {
-          return_url:
-            `https://worksangam.in/payment-success?order_id=${orderId}`,
-        },
-      },
-      {
-        headers: {
-
-          "x-client-id":
-            process.env.CASHFREE_APP_ID,
-
-          "x-client-secret":
-            process.env.CASHFREE_SECRET_KEY,
-
-          "x-api-version":
-            "2022-09-01",
-
-          "Content-Type":
-            "application/json",
-        },
-      }
-    );
-
-    // ✅ SEND SESSION ID
     res.json({
-
-      payment_session_id:
-        response.data.payment_session_id,
-
-      order_id: orderId,
-    });
+  upi: {
+    pa: "worksangam@axl",
+    pn: "WorkSangam",
+    tn: `Buy ${credits} credits`,
+    am: amount,
+    cu: "INR",
+  },
+});
 
   } catch (err) {
-
-    console.error(
-      "🔥 CASHFREE ERROR:",
-      err.response?.data || err.message
-    );
-
-    res.status(500).json({
-      msg: "Order creation failed",
-    });
+    console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
+    res.status(500).json({ msg: "Order creation failed" });
   }
 };
 
@@ -162,50 +131,5 @@ export const getUserPayments = async (req, res) => {
   } catch (err) {
     console.error("Get payments error:", err);
     res.status(500).json({ msg: "Server error" });
-  }
-};
-
-export const verifyPayment = async (req, res) => {
-
-  try {
-
-    const { orderId } = req.body;
-
-    const payment =
-      await Payment.findOne({
-        orderId,
-      });
-
-    if (!payment) {
-
-      return res.status(404).json({
-        msg: "Payment not found",
-      });
-    }
-
-    if (payment.status === "SUCCESS") {
-
-      return res.json({
-
-        success: true,
-
-        msg:
-          "Credits added successfully",
-      });
-    }
-
-    return res.status(400).json({
-
-      msg: "Payment pending",
-    });
-
-  } catch (err) {
-
-    console.log(err);
-
-    res.status(500).json({
-
-      msg: "Server error",
-    });
   }
 };
