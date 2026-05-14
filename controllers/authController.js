@@ -860,14 +860,40 @@ export const createGuestUser = async (req, res) => {
 
 // authController.js
 export const verifyOldPassword = async (req, res) => {
-  const user = await User.findById(req.user.id);
-  const match = await bcrypt.compare(req.body.oldPassword, user.password);
 
-  if (!match) {
-    return res.status(400).json({ msg: "Incorrect old password" });
+  try {
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        msg: "User not found",
+      });
+    }
+
+    const match = await bcrypt.compare(
+      req.body.oldPassword,
+      user.password,
+    );
+
+    if (!match) {
+      return res.status(400).json({
+        msg: "Incorrect old password",
+      });
+    }
+
+    res.json({
+      msg: "Old password verified",
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error",
+    });
   }
-
-  res.json({ msg: "Old password verified" });
 };
 
 // Enhanced search location method with additional checks
