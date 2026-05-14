@@ -1,5 +1,3 @@
-
-// controllers/paymentController.js
 import axios from "axios";
 import Payment from "../models/Payment.js";
 import { CREDIT_PLANS } from "../utils/creditPlans.js";
