@@ -15,12 +15,14 @@ export const getEmployeesByType = async (req, res) => {
 
     const query = {
   role: "employee",
-  professionType,
   onboardingStep: "completed",
-
-  // ✅ ADD THIS LINE
   isAvailable: status === "online",
 };
+
+// ✅ ONLY FILTER IF professionType EXISTS
+if (professionType) {
+  query.professionType = professionType;
+}
 
     if (profession) {
       query.profession = { $regex: new RegExp(`^${profession}$`, "i") };
