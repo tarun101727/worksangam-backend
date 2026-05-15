@@ -2,28 +2,27 @@ import User from "../models/User.js";
 
 export const getEmployeesByType = async (req, res) => {
   try {
-    const { status } = req.params; // online | offline
-    const { professionType, profession } = req.query;
+
+    const { status } = req.params;
+    const { profession } = req.query;
 
     if (!["online", "offline"].includes(status)) {
-      return res.status(400).json({ msg: "Invalid status" });
-    }
-
-    if (!["online", "offline"].includes(professionType)) {
-      return res.status(400).json({ msg: "Invalid professionType" });
+      return res.status(400).json({
+        msg: "Invalid status"
+      });
     }
 
     const query = {
-  role: "employee",
-  professionType,
-  onboardingStep: "completed",
+      role: "employee",
+      onboardingStep: "completed",
 
-  // ✅ ADD THIS LINE
-  isAvailable: status === "online",
-};
+      isAvailable: status === "online",
+    };
 
     if (profession) {
-      query.profession = { $regex: new RegExp(`^${profession}$`, "i") };
+      query.profession = {
+        $regex: new RegExp(`^${profession}$`, "i"),
+      };
     }
 
     const employees = await User.find(query).select(
@@ -33,8 +32,12 @@ export const getEmployeesByType = async (req, res) => {
     res.json({ employees });
 
   } catch (err) {
+
     console.error("Get employees error:", err);
-    res.status(500).json({ msg: "Server error" });
+
+    res.status(500).json({
+      msg: "Server error"
+    });
   }
 };
 
