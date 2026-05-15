@@ -981,21 +981,11 @@ export const createEmployeeAccount = async (req, res) => {
       onboardingStep: "completed",
     };
 
+    // Only update profession if changed
     if (profession && profession !== user.profession) {
-
-  updateData.profession = profession;
-
-  // ✅ FIXED
-  updateData.professionType =
-    professionType === "online"
-      ? "online"
-      : "offline";
-
-  console.log(
-    "Saved professionType =>",
-    updateData.professionType
-  );
-}
+      updateData.profession = profession;
+      updateData.professionType = professionType || "offline";
+    }
 
     // ✅ Upload profile image if exists
     if (req.file) {
