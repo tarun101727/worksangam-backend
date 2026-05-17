@@ -48,8 +48,8 @@ export const getComments = async (req, res) => {
     const { profileId } = req.params;
 
     const comments = await ProfileComment.find({ profileId })
-      .populate("user", "firstName lastName avatarInitial avatarColor profileImage")
-      .sort({ createdAt: 1 }); // ← oldest first
+  .populate("user", "firstName lastName avatarInitial avatarColor profileImage")
+  .sort({ depth: 1, createdAt: 1 }); // parents first, then replies
 
     res.json(comments);
   } catch (err) {
