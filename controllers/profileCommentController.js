@@ -49,7 +49,7 @@ export const getComments = async (req, res) => {
 
     const comments = await ProfileComment.find({ profileId })
       .populate("user", "firstName lastName avatarInitial avatarColor profileImage")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: 1 }); // ← oldest first
 
     res.json(comments);
   } catch (err) {
