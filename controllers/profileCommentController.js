@@ -48,11 +48,20 @@ export const getComments = async (req, res) => {
     const { profileId } = req.params;
 
     const comments = await ProfileComment.find({ profileId })
-  .populate("user", "firstName lastName avatarInitial avatarColor profileImage")
-  .sort({ depth: 1, createdAt: 1 }); // parents first, then replies
+      .populate("user", "firstName lastName avatarInitial avatarColor profileImage")
+      .lean() // convert to plain JS objects
+      .sort({ createdAt: 1 }); // sort by creation time
 
-    res.json(comments);
+    // Ensure parentComment is always string or null
+    const normalizedComments = comments.map(c => ({
+      ...c,
+      parentComment: c.parentComment ? c.parentComment.toString() : null
+    }));
+
+    res.json(normalizedComments);
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
