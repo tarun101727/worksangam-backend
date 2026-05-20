@@ -1,3 +1,4 @@
+
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import multer from "multer";
@@ -55,7 +56,7 @@ router.post("/send/:chatId", authMiddleware, sendMessage);
 router.post(
   "/send-media/:chatId",
   authMiddleware,
-  upload.single("media"),
+  upload.single("image"),
   sendMedia
 );
 
