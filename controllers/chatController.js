@@ -37,10 +37,6 @@ export const getChats = async (req, res) => {
   res.json(chats);
 };
 
-
-
-/* get messages */
-
 /* get messages */
 
 export const getMessages = async (req, res) => {
@@ -110,6 +106,8 @@ io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
 res.json(populated);
 };
 
+
+
 export const sendMedia = async (req, res) => {
 
   try {
@@ -119,6 +117,7 @@ export const sendMedia = async (req, res) => {
     if (!req.file) {
 
       return res.status(400).json({
+
         error: "No file uploaded",
       });
     }
@@ -127,27 +126,46 @@ export const sendMedia = async (req, res) => {
       req.body?.caption || "";
 
     /*
-    UPLOAD TO CLOUDINARY
+    DETECT FILE TYPE
+    */
+    const isVideo =
+      req.file.mimetype.startsWith(
+        "video"
+      );
+
+    /*
+    CLOUDINARY UPLOAD
     */
     const result =
       await cloudinary.uploader.upload(
         req.file.path,
         {
+
           folder: "chat_media",
-          resource_type: "auto",
+
+          resource_type:
+            isVideo
+              ? "video"
+              : "image",
         }
       );
+
+    console.log(
+      "CLOUDINARY RESULT:",
+      result.secure_url,
+    );
 
     /*
     DELETE TEMP FILE
     */
-    fs.unlinkSync(req.file.path);
+    if (
+      fs.existsSync(req.file.path)
+    ) {
 
-    const imageUrl =
-      result.secure_url;
-
-    const encrypted =
-      encryptMessage(caption);
+      fs.unlinkSync(
+        req.file.path,
+      );
+    }
 
     /*
     SAVE MESSAGE
@@ -162,9 +180,12 @@ export const sendMedia = async (req, res) => {
           req.user.id,
 
         encryptedMessage:
-          encrypted,
+          encryptMessage(
+            caption,
+          ),
 
-        image: imageUrl,
+        image:
+          result.secure_url,
       });
 
     const populated =
@@ -187,7 +208,8 @@ export const sendMedia = async (req, res) => {
       }
     );
 
-    return res.json({
+    return res.status(200).json({
+
       ...populated._doc,
 
       message: caption,
@@ -203,7 +225,8 @@ export const sendMedia = async (req, res) => {
     return res.status(500).json({
 
       error:
-        "Failed to send media",
+        err.message ||
+        "Failed to upload media",
     });
   }
 };
