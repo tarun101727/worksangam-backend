@@ -37,6 +37,10 @@ export const getChats = async (req, res) => {
   res.json(chats);
 };
 
+
+
+/* get messages */
+
 /* get messages */
 
 export const getMessages = async (req, res) => {
@@ -106,128 +110,52 @@ io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
 res.json(populated);
 };
 
-
-
 export const sendMedia = async (req, res) => {
-
   try {
+    const caption = req.body?.caption || "";
 
-    console.log("REQ FILE:", req.file);
+    let imageUrl = null;
 
-    if (!req.file) {
-
-      return res.status(400).json({
-
-        error: "No file uploaded",
-      });
-    }
-
-    const caption =
-      req.body?.caption || "";
-
-    /*
-    DETECT FILE TYPE
-    */
-    const isVideo =
-      req.file.mimetype.startsWith(
-        "video"
-      );
-
-    /*
-    CLOUDINARY UPLOAD
-    */
-    const result =
-      await cloudinary.uploader.upload(
-        req.file.path,
-        {
-
-          folder: "chat_media",
-
-          resource_type:
-            isVideo
-              ? "video"
-              : "image",
-        }
-      );
-
-    console.log(
-      "CLOUDINARY RESULT:",
-      result.secure_url,
-    );
-
-    /*
-    DELETE TEMP FILE
-    */
-    if (
-      fs.existsSync(req.file.path)
-    ) {
-
-      fs.unlinkSync(
-        req.file.path,
-      );
-    }
-
-    /*
-    SAVE MESSAGE
-    */
-    const msg =
-      await Message.create({
-
-        chatId:
-          req.params.chatId,
-
-        sender:
-          req.user.id,
-
-        encryptedMessage:
-          encryptMessage(
-            caption,
-          ),
-
-        image:
-          result.secure_url,
+    // 🔥 Upload to Cloudinary
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "chat_media",
+        resource_type: "auto", // IMPORTANT for video support
       });
 
-    const populated =
-      await msg.populate(
-        "sender",
-        "profileImage firstName lastName"
-      );
+      imageUrl = result.secure_url;
 
-    /*
-    SOCKET EMIT
-    */
-    io.to(
-      req.params.chatId
-    ).emit(
-      "receive-message",
-      {
-        ...populated._doc,
+      // 🧹 delete local temp file
+      fs.unlinkSync(req.file.path);
+    }
 
-        message: caption,
-      }
-    );
+    const encrypted = encryptMessage(caption);
 
-    return res.status(200).json({
-
-      ...populated._doc,
-
-      message: caption,
+    const msg = await Message.create({
+      chatId: req.params.chatId,
+      sender: req.user.id,
+      encryptedMessage: encrypted,
+      image: imageUrl // ✅ SAVE CLOUDINARY URL
     });
+
+    const populated = await msg.populate(
+      "sender",
+      "profileImage firstName lastName"
+    );
+
+    const message = caption;
+
+    // socket emit
+    io.to(req.params.chatId).emit("receive-message", {
+      ...populated._doc,
+      message
+    });
+
+    res.json(populated);
 
   } catch (err) {
-
-    console.error(
-      "SEND MEDIA ERROR:",
-      err,
-    );
-
-    return res.status(500).json({
-
-      error:
-        err.message ||
-        "Failed to upload media",
-    });
+    console.error(err);
+    res.status(500).json({ error: "Failed to send media" });
   }
 };
 
