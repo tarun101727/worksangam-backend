@@ -1,4 +1,3 @@
-
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import multer from "multer";
@@ -26,24 +25,34 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
+
   fileFilter: (req, file, cb) => {
+
+    console.log("MIME TYPE:", file.mimetype);
 
     const allowed = [
       "image/png",
       "image/jpeg",
       "image/jpg",
       "image/webp",
+      "image/heic",
+      "image/heif",
       "video/mp4",
       "video/webm",
       "video/ogg"
     ];
 
     if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image or video allowed"));
-    }
 
+      cb(null, true);
+
+    } else {
+
+      return cb(
+        new Error("Unsupported file type"),
+        false
+      );
+    }
   }
 });
 
@@ -56,7 +65,7 @@ router.post("/send/:chatId", authMiddleware, sendMessage);
 router.post(
   "/send-media/:chatId",
   authMiddleware,
-  upload.single("image"),
+  upload.single("media"),
   sendMedia
 );
 
