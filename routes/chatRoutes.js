@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import authMiddleware from "../middleware/authMiddleware.js";
 import multer from "multer";
 import {
@@ -12,6 +13,11 @@ import {
   sendMedia,
   sendMessage
 } from "../controllers/chatController.js";
+
+if (!fs.existsSync("uploads")) {
+
+  fs.mkdirSync("uploads");
+}
 
 const storage = multer.diskStorage({
 
