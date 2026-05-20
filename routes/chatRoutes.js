@@ -14,36 +14,68 @@ import {
 } from "../controllers/chatController.js";
 
 const storage = multer.diskStorage({
+
   destination: (req, file, cb) => {
+
     cb(null, "uploads/");
   },
 
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+
+    cb(
+      null,
+      Date.now() + "-" + file.originalname
+    );
   }
 });
 
 const upload = multer({
+
   storage,
+
+  limits: {
+    fileSize: 50 * 1024 * 1024,
+  },
+
   fileFilter: (req, file, cb) => {
 
+    console.log(
+      "Incoming file:",
+      file.mimetype,
+    );
+
     const allowed = [
+
       "image/png",
+
       "image/jpeg",
+
       "image/jpg",
+
       "image/webp",
+
       "video/mp4",
+
       "video/webm",
-      "video/ogg"
+
+      "video/ogg",
     ];
 
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image or video allowed"));
-    }
+    if (
+      allowed.includes(file.mimetype)
+    ) {
 
-  }
+      cb(null, true);
+
+    } else {
+
+      cb(
+        new Error(
+          "Only image/video allowed",
+        ),
+      );
+    }
+  },
 });
 
 const router = express.Router();
