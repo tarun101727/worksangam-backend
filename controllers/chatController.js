@@ -85,12 +85,6 @@ export const sendMessage = async (req, res) => {
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
 
-// Emit message to chat participants
-io.to(req.params.chatId).emit("receive-message", {
-  ...populated._doc,
-  message
-});
-
 // 🔔 Create notification for receiver
 const chat = await Chat.findById(req.params.chatId);
 const receiverId = chat.participants.find(id => id.toString() !== req.user.id);
