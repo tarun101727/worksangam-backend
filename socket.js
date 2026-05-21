@@ -56,54 +56,23 @@ socket.on("stop-typing", ({ chatId, userId }) => {
   socket.to(chatId).emit("user-stop-typing", { userId });
 });
 
-  socket.on(
-  "send-message",
-  ({
-    chatId,
+   socket.on("send-message", ({ chatId, message, sender, receiverId }) => {
+
+  // send message to chat room
+  socket.to(chatId).emit("receive-message", {
+    message,
+    sender
+  });
+
+  // 🔥 send notification to receiver directly
+  io.to(receiverId).emit("new-chat-notification", {
     message,
     sender,
-    receiverId
-  }) => {
+    chat: chatId,
+    createdAt: new Date()
+  });
 
-    /*
-    INSTANT REALTIME MESSAGE
-    */
-
-    socket.to(chatId).emit(
-      "receive-message",
-      {
-        _id: Date.now().toString(),
-
-        message,
-
-        sender,
-
-        createdAt:
-          new Date(),
-      }
-    );
-
-    /*
-    REALTIME NOTIFICATION
-    */
-
-    io.to(receiverId).emit(
-      "new-chat-notification",
-      {
-        _id: Date.now().toString(),
-
-        message,
-
-        sender,
-
-        chat: chatId,
-
-        createdAt:
-          new Date(),
-      }
-    );
-  }
-);
+});
 
     /* -------------------- USER ROOM -------------------- */
 
