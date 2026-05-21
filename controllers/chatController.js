@@ -69,93 +69,162 @@ export const getMessages = async (req, res) => {
 /* send message */
 
 export const sendMessage = async (req, res) => {
-
   const { message, replyTo, replyText } = req.body;
 
   const encrypted = encryptMessage(message);
 
   const msg = await Message.create({
-  chatId: req.params.chatId,
-  sender: req.user.id,
-  encryptedMessage: encrypted,
-  replyTo: replyTo || null,
-  replyText: replyText || ""
-});
+    chatId: req.params.chatId,
+    sender: req.user.id,
+    encryptedMessage: encrypted,
+    replyTo: replyTo || null,
+    replyText: replyText || "",
+  });
 
-  // inside sendMessage
-const populated = await msg.populate("sender","profileImage firstName lastName");
+  // Populate sender
+  const populated = await msg.populate(
+    "sender",
+    "profileImage firstName lastName avatarInitial avatarColor"
+  );
 
-// Emit message to chat participants
-io.to(req.params.chatId).emit("receive-message", {
-  ...populated._doc,
-  message
-});
+  // Emit message to chat participants
+  io.to(req.params.chatId).emit("receive-message", {
+    ...populated._doc,
+    message,
+  });
 
-// 🔔 Create notification for receiver
-const chat = await Chat.findById(req.params.chatId);
-const receiverId = chat.participants.find(id => id.toString() !== req.user.id);
+  // 🔥 FAST REALTIME NOTIFICATION
+  const chat = await Chat.findById(req.params.chatId);
 
-const chatNotification = await ChatNotification.create({
-  chat: chat._id,
-  sender: req.user.id,
-  receiver: receiverId,
-  message,
-});
+  const receiverId = chat.participants.find(
+    (id) => id.toString() !== req.user.id
+  );
 
-const populatedNotif = await chatNotification.populate("sender", "firstName lastName profileImage");
+  // emit instantly
+  io.to(receiverId.toString()).emit(
+    "new-chat-notification",
+    {
+      _id: Date.now().toString(),
 
-// Emit notification to receiver
-io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
+      chat: chat._id,
 
-res.json(populated);
+      message,
+
+      createdAt: new Date(),
+
+      sender: {
+        _id: populated.sender._id,
+        firstName: populated.sender.firstName,
+        lastName: populated.sender.lastName,
+        profileImage: populated.sender.profileImage,
+        avatarInitial: populated.sender.avatarInitial,
+        avatarColor: populated.sender.avatarColor,
+      },
+    }
+  );
+
+  // save in background
+  ChatNotification.create({
+    chat: chat._id,
+    sender: req.user.id,
+    receiver: receiverId,
+    message,
+  }).catch(console.error);
+
+  res.json(populated);
 };
 
 export const sendMedia = async (req, res) => {
   try {
+
     const caption = req.body?.caption || "";
 
     let imageUrl = null;
 
-    // 🔥 Upload to Cloudinary
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "chat_media",
-        resource_type: "auto", // IMPORTANT for video support
+    /*
+    CHECK FILE
+    */
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: "No file uploaded"
       });
-
-      imageUrl = result.secure_url;
-
-      // 🧹 delete local temp file
-      fs.unlinkSync(req.file.path);
     }
 
+    /*
+    UPLOAD TO CLOUDINARY
+    */
+
+    const result = await cloudinary.uploader.upload(
+      req.file.path,
+      {
+        folder: "chat_media",
+        resource_type: "auto",
+      }
+    );
+
+    imageUrl = result.secure_url;
+
+    /*
+    DELETE TEMP FILE
+    */
+
+    fs.unlinkSync(req.file.path);
+
+    /*
+    ENCRYPT MESSAGE
+    */
+
     const encrypted = encryptMessage(caption);
+
+    /*
+    SAVE MESSAGE
+    */
 
     const msg = await Message.create({
       chatId: req.params.chatId,
       sender: req.user.id,
       encryptedMessage: encrypted,
-      image: imageUrl // ✅ SAVE CLOUDINARY URL
+      image: imageUrl,
     });
+
+    /*
+    POPULATE SENDER
+    */
 
     const populated = await msg.populate(
       "sender",
       "profileImage firstName lastName"
     );
 
-    const message = caption;
+    /*
+    SOCKET EMIT
+    */
 
-    // socket emit
-    io.to(req.params.chatId).emit("receive-message", {
+    io.to(req.params.chatId).emit(
+      "receive-message",
+      {
+        ...populated._doc,
+        message: caption,
+      }
+    );
+
+    /*
+    RETURN RESPONSE
+    */
+
+    res.json({
       ...populated._doc,
-      message
+      message: caption,
     });
 
-    res.json(populated);
-
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({ error: "Failed to send media" });
+
+    res.status(500).json({
+      error: "Failed to send media"
+    });
   }
 };
 
