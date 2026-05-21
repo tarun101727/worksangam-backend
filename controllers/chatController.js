@@ -69,69 +69,45 @@ export const getMessages = async (req, res) => {
 /* send message */
 
 export const sendMessage = async (req, res) => {
+
   const { message, replyTo, replyText } = req.body;
 
   const encrypted = encryptMessage(message);
 
   const msg = await Message.create({
-    chatId: req.params.chatId,
-    sender: req.user.id,
-    encryptedMessage: encrypted,
-    replyTo: replyTo || null,
-    replyText: replyText || "",
-  });
+  chatId: req.params.chatId,
+  sender: req.user.id,
+  encryptedMessage: encrypted,
+  replyTo: replyTo || null,
+  replyText: replyText || ""
+});
 
-  // Populate sender
-  const populated = await msg.populate(
-    "sender",
-    "profileImage firstName lastName avatarInitial avatarColor"
-  );
+  // inside sendMessage
+const populated = await msg.populate("sender","profileImage firstName lastName");
 
-  // Emit message to chat participants
-  io.to(req.params.chatId).emit("receive-message", {
-    ...populated._doc,
-    message,
-  });
+// Emit message to chat participants
+io.to(req.params.chatId).emit("receive-message", {
+  ...populated._doc,
+  message
+});
 
-  // 🔥 FAST REALTIME NOTIFICATION
-  const chat = await Chat.findById(req.params.chatId);
+// 🔔 Create notification for receiver
+const chat = await Chat.findById(req.params.chatId);
+const receiverId = chat.participants.find(id => id.toString() !== req.user.id);
 
-  const receiverId = chat.participants.find(
-    (id) => id.toString() !== req.user.id
-  );
+const chatNotification = await ChatNotification.create({
+  chat: chat._id,
+  sender: req.user.id,
+  receiver: receiverId,
+  message,
+});
 
-  // emit instantly
-  io.to(receiverId.toString()).emit(
-    "new-chat-notification",
-    {
-      _id: Date.now().toString(),
+const populatedNotif = await chatNotification.populate("sender", "firstName lastName profileImage");
 
-      chat: chat._id,
+// Emit notification to receiver
+io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
 
-      message,
-
-      createdAt: new Date(),
-
-      sender: {
-        _id: populated.sender._id,
-        firstName: populated.sender.firstName,
-        lastName: populated.sender.lastName,
-        profileImage: populated.sender.profileImage,
-        avatarInitial: populated.sender.avatarInitial,
-        avatarColor: populated.sender.avatarColor,
-      },
-    }
-  );
-
-  // save in background
-  ChatNotification.create({
-    chat: chat._id,
-    sender: req.user.id,
-    receiver: receiverId,
-    message,
-  }).catch(console.error);
-
-  res.json(populated);
+res.json(populated);
 };
 
 export const sendMedia = async (req, res) => {
