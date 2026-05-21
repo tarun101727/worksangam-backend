@@ -49,8 +49,11 @@ export const getMessages = async (req, res) => {
   .populate("participants","firstName lastName profileImage");
 
   const messages = await Message.find({
-    chatId: req.params.chatId
-  }).populate("sender", "profileImage firstName lastName");
+  chatId: req.params.chatId
+})
+.sort({ createdAt: 1 })
+
+.populate("sender", "profileImage firstName lastName");
 
   const decrypted = messages.map(m => ({
     ...m._doc,
