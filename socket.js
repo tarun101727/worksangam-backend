@@ -81,6 +81,95 @@ socket.on("stop-typing", ({ chatId, userId }) => {
       console.log(`👤 Joined user room ${userId}`);
     });
 
+
+    /* -------------------- URGENT HIRER -------------------- */
+
+socket.on("join-profession", (profession) => {
+
+  const room = `profession-${profession.toLowerCase()}`;
+
+  socket.join(room);
+
+  console.log(`🟢 Joined profession room ${room}`);
+});
+
+/*
+CREATE URGENT HIRE REQUEST
+*/
+
+socket.on("create-urgent-hire", (data) => {
+
+  const room =
+    `profession-${data.profession.toLowerCase()}`;
+
+  const payload = {
+    requestId: data.requestId,
+    hirerId: data.hirerId,
+    hirerName: data.hirerName,
+    profileImage: data.profileImage,
+    profession: data.profession,
+    createdAt: Date.now(),
+  };
+
+  /*
+  SEND TO ALL USERS OF SAME PROFESSION
+  */
+
+  io.to(room).emit(
+    "urgent-hire-request",
+    payload,
+  );
+
+  console.log(
+    `🚨 Urgent hire sent to ${room}`,
+  );
+});
+
+/*
+ACCEPT URGENT HIRE
+*/
+
+socket.on("accept-urgent-hire", (data) => {
+
+  io.emit(
+    "urgent-hire-accepted",
+    {
+      requestId: data.requestId,
+      employeeId: data.employeeId,
+    },
+  );
+
+  console.log(
+    `✅ Urgent hire accepted ${data.requestId}`,
+  );
+});
+
+/*
+DENY URGENT HIRE
+*/
+
+socket.on("deny-urgent-hire", (data) => {
+
+  socket.emit(
+    "urgent-hire-denied",
+    data,
+  );
+});
+
+/*
+EXPIRE URGENT HIRE
+*/
+
+socket.on("expire-urgent-hire", (data) => {
+
+  io.emit(
+    "urgent-hire-expired",
+    {
+      requestId: data.requestId,
+    },
+  );
+});
+
     /* -------------------- DISCONNECT -------------------- */
 
     socket.on("disconnect", () => {
