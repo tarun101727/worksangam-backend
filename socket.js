@@ -2,6 +2,10 @@ import { Server } from "socket.io";
 
 let io;
 
+
+const activeUrgentRequests = new Map();
+
+
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
@@ -131,7 +135,24 @@ ACCEPT URGENT HIRE
 
 socket.on("accept-urgent-hire", (data) => {
 
-  io.emit(
+  /*
+  ALREADY ACCEPTED
+  */
+
+  if (
+    activeUrgentRequests.has(
+      data.requestId,
+    )
+  ) {
+    return;
+  }
+
+  activeUrgentRequests.set(
+    data.requestId,
+    data.employeeId,
+  );
+
+  io.to(data.hirerId).emit(
     "urgent-hire-accepted",
     {
       requestId: data.requestId,
@@ -139,8 +160,15 @@ socket.on("accept-urgent-hire", (data) => {
     },
   );
 
-  console.log(
-    `✅ Urgent hire accepted ${data.requestId}`,
+  /*
+  EXPIRE FOR OTHERS
+  */
+
+  io.emit(
+    "urgent-hire-expired",
+    {
+      requestId: data.requestId,
+    },
   );
 });
 
