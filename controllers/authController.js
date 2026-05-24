@@ -272,6 +272,7 @@ if (user) {
   token,
   userId: user._id,
   role: user.role,
+  onboardingStep: user.onboardingStep,
 });
   } catch (err) {
     console.error(err);
