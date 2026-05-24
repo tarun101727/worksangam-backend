@@ -588,120 +588,294 @@ export const adminSignup = async (req, res) => {
     const { username, password, adminSecret } = req.body;
 
     if (!username || !password || !adminSecret) {
-      return res.status(400).json({ msg: 'All fields required' });
+      return res.status(400).json({
+        msg: "All fields required",
+      });
     }
 
     if (adminSecret !== process.env.ADMIN_SECRET) {
-      return res.status(403).json({ msg: 'Unauthorized admin access' });
+      return res.status(403).json({
+        msg: "Unauthorized admin access",
+      });
     }
 
-    const existingAdmin = await User.findOne({ email: username });
+    const existingAdmin = await User.findOne({
+      email: username,
+    });
+
     if (existingAdmin) {
-      return res.status(400).json({ msg: 'Admin already exists' });
+      return res.status(400).json({
+        msg: "Admin already exists",
+      });
     }
 
-    const ownerExists = await User.findOne({ role: 'owner' });
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const ownerExists = await User.findOne({
+      role: "owner",
+    });
+
+    const hashedPassword = await bcrypt.hash(
+      password,
+      10,
+    );
 
     let profileImage = null;
 
-if (req.file) {
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "profile_images",
-    public_id: `admin_${Date.now()}`,
-  });
+    /*
+    UPLOAD IMAGE
+    */
 
-  profileImage = result.secure_url;
-}
+    if (req.file) {
+
+      const result =
+          await cloudinary.uploader.upload(
+        req.file.path,
+        {
+          folder: "profile_images",
+          public_id: `admin_${Date.now()}`,
+        },
+      );
+
+      profileImage =
+          result.secure_url;
+    }
+
+    /*
+    CREATE ADMIN
+    */
 
     const admin = new User({
+
       email: username,
+
       password: hashedPassword,
-      role: ownerExists ? 'admin' : 'owner',
+
+      role:
+          ownerExists
+              ? "admin"
+              : "owner",
+
       isVerified: true,
+
       isGuest: false,
 
-      // ✅ IMPORTANT FIX
-      onboardingStep: null,
+      onboardingStep: "completed",
+
       professionType: null,
 
       profileImage,
-      avatarInitial: 'A',
-      avatarColor: '#1C1C1C',
+
+      avatarInitial: "A",
+
+      avatarColor: "#1C1C1C",
     });
 
     await admin.save();
 
+    /*
+    GENERATE TOKEN
+    */
+
     const token = jwt.sign(
-      { id: admin._id, role: admin.role },
+
+      {
+        id: admin._id,
+        role: admin.role,
+      },
+
       process.env.JWT_SECRET,
-      { expiresIn: '10y' }
+
+      {
+        expiresIn: "10y",
+      },
     );
 
-    setAuthCookie(res, token, admin);
+    /*
+    SET COOKIE
+    */
+
+    setAuthCookie(
+      res,
+      token,
+      admin,
+    );
+
+    /*
+    RESPONSE
+    */
 
     res.status(201).json({
-      msg: `${admin.role.toUpperCase()} account created`,
-      user: admin,
+
+      msg:
+          `${admin.role.toUpperCase()} account created`,
+
+      token, // ✅ IMPORTANT FIX
+
+      user: {
+
+        _id: admin._id,
+
+        email: admin.email,
+
+        role: admin.role,
+
+        isGuest: false,
+
+        onboardingStep: "completed",
+
+        avatarInitial:
+            admin.avatarInitial,
+
+        avatarColor:
+            admin.avatarColor,
+
+        profileImage:
+            admin.profileImage,
+      },
     });
+
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+
+    res.status(500).json({
+      msg: "Server error",
+    });
   }
 };
 
 
 
 export const adminLogin = async (req, res) => {
+
   try {
-    const { username, password } = req.body;
+
+    const {
+      username,
+      password,
+    } = req.body;
+
+    /*
+    VALIDATION
+    */
 
     if (!username || !password) {
-      return res.status(400).json({ msg: "Username and password required" });
+
+      return res.status(400).json({
+        msg:
+            "Username and password required",
+      });
     }
 
-    // 🔎 FIND ADMIN ONLY
+    /*
+    FIND ADMIN
+    */
+
     const admin = await User.findOne({
+
       email: username,
-      role: { $in: ["admin", "owner"] },
+
+      role: {
+        $in: ["admin", "owner"],
+      },
+
       isGuest: false,
     });
 
     if (!admin) {
-      return res.status(403).json({ msg: "Unauthorized admin access" });
+
+      return res.status(403).json({
+        msg:
+            "Unauthorized admin access",
+      });
     }
 
-    const match = await bcrypt.compare(password, admin.password);
+    /*
+    PASSWORD CHECK
+    */
+
+    const match =
+        await bcrypt.compare(
+      password,
+      admin.password,
+    );
+
     if (!match) {
-      return res.status(400).json({ msg: "Invalid credentials" });
+
+      return res.status(400).json({
+        msg: "Invalid credentials",
+      });
     }
+
+    /*
+    GENERATE TOKEN
+    */
 
     const token = jwt.sign(
-  { id: admin._id, role: admin.role },
-  process.env.JWT_SECRET,
-  { expiresIn: "10y" }
-);
 
+      {
+        id: admin._id,
+        role: admin.role,
+      },
 
-    setAuthCookie(res, token, admin);
+      process.env.JWT_SECRET,
 
-    res.status(201).json({
-  msg: `${admin.role.toUpperCase()} account created`,
-  user: {
-    _id: admin._id,
-    email: admin.email,
-    role: admin.role,
-    isGuest: false,                 // 🔑 REQUIRED
-    onboardingStep: "completed",    // 🔑 REQUIRED
-    avatarInitial: admin.avatarInitial,
-    avatarColor: admin.avatarColor,
-  },
-});
+      {
+        expiresIn: "10y",
+      },
+    );
 
+    /*
+    SET COOKIE
+    */
+
+    setAuthCookie(
+      res,
+      token,
+      admin,
+    );
+
+    /*
+    RESPONSE
+    */
+
+    res.status(200).json({
+
+      msg:
+          "Admin login successful",
+
+      token, // ✅ IMPORTANT FIX
+
+      user: {
+
+        _id: admin._id,
+
+        email: admin.email,
+
+        role: admin.role,
+
+        isGuest: false,
+
+        onboardingStep: "completed",
+
+        avatarInitial:
+            admin.avatarInitial,
+
+        avatarColor:
+            admin.avatarColor,
+
+        profileImage:
+            admin.profileImage,
+      },
+    });
 
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({ msg: "Admin login failed" });
+
+    res.status(500).json({
+      msg:
+          "Admin login failed",
+    });
   }
 };
 
