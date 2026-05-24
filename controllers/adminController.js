@@ -5,7 +5,7 @@ import HirerPost from "../models/HirerPost.js";
 import { logAdminAction } from "../utils/adminLogger.js";
 
 /**
- * GET /admin/users
+ * GET /owner/users
  */
 export const getAllUsers = async (req, res) => {
   try {
@@ -76,24 +76,24 @@ export const getAllUsers = async (req, res) => {
     */
 
     const users =
-        await User.find(filter)
+      await User.find(filter)
 
-            .sort({
-              createdAt: -1,
-            })
+        .sort({
+          createdAt: -1,
+        })
 
-            .select(`
-        email
-        firstName
-        lastName
-        role
-        isGuest
-        isVerified
-        isDisabled
-        profession
-        professionType
-        createdAt
-      `);
+        .select(`
+          email
+          firstName
+          lastName
+          role
+          isGuest
+          isVerified
+          isDisabled
+          profession
+          professionType
+          createdAt
+        `);
 
     res.json({
       users,
@@ -108,21 +108,22 @@ export const getAllUsers = async (req, res) => {
 
     res.status(500).json({
       msg:
-          "Failed to fetch users",
+        "Failed to fetch users",
     });
   }
 };
 
 /**
- * GET /admin/stats
+ * GET /owner/stats
  */
 export const getAdminStats = async (
-    req,
-    res,
+  req,
+  res,
 ) => {
   try {
+
     const todayStart =
-        new Date();
+      new Date();
 
     todayStart.setHours(
       0,
@@ -135,10 +136,12 @@ export const getAdminStats = async (
       totalUsers,
       totalEmployees,
       totalHirers,
+      totalOwners,
       liveEmployees,
       totalJobPosts,
       jobsFilledToday,
     ] = await Promise.all([
+
       User.countDocuments({
         role: {
           $ne: "guest",
@@ -151,6 +154,10 @@ export const getAdminStats = async (
 
       User.countDocuments({
         role: "hirer",
+      }),
+
+      User.countDocuments({
+        role: "owner",
       }),
 
       User.countDocuments({
@@ -173,6 +180,7 @@ export const getAdminStats = async (
       totalUsers,
       totalEmployees,
       totalHirers,
+      totalOwners,
       liveEmployees,
       totalJobPosts,
       jobsFilledToday,
@@ -181,275 +189,275 @@ export const getAdminStats = async (
   } catch (err) {
 
     console.error(
-      "Admin stats error:",
+      "Owner stats error:",
       err,
     );
 
     res.status(500).json({
       msg:
-          "Failed to load admin stats",
+        "Failed to load owner stats",
     });
   }
 };
 
 /**
- * PATCH /admin/users/:id/toggle-disable
+ * PATCH /owner/users/:id/toggle-disable
  */
 export const toggleUserDisable =
-    async (
-        req,
-        res,
-    ) => {
-  try {
+  async (
+    req,
+    res,
+  ) => {
+    try {
 
-    const user =
+      const user =
         await User.findById(
-            req.params.id,
+          req.params.id,
         );
 
-    if (!user) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
-    }
+      if (!user) {
+        return res.status(404).json({
+          msg: "User not found",
+        });
+      }
 
-    user.isDisabled =
+      user.isDisabled =
         !user.isDisabled;
 
-    await user.save();
+      await user.save();
 
-    /*
-    =========================
-    ADMIN LOG
-    =========================
-    */
+      /*
+      =========================
+      OWNER LOG
+      =========================
+      */
 
-    await logAdminAction({
-      adminId:
+      await logAdminAction({
+        adminId:
           req.user.id,
 
-      action:
+        action:
           "TOGGLE_USER_DISABLE",
 
-      targetType:
+        targetType:
           "user",
 
-      targetId:
+        targetId:
           user._id,
-    });
+      });
 
-    res.json({
-      msg:
+      res.json({
+        msg:
           user.isDisabled
-              ? "User disabled"
-              : "User enabled",
+            ? "User disabled"
+            : "User enabled",
 
-      isDisabled:
+        isDisabled:
           user.isDisabled,
-    });
+      });
 
-  } catch (err) {
+    } catch (err) {
 
-    console.error(
-      "Toggle disable error:",
-      err,
-    );
+      console.error(
+        "Toggle disable error:",
+        err,
+      );
 
-    res.status(500).json({
-      msg: "Action failed",
-    });
-  }
-};
+      res.status(500).json({
+        msg: "Action failed",
+      });
+    }
+  };
 
 /**
- * PATCH /admin/users/:id/role
+ * PATCH /owner/users/:id/role
  */
 export const changeUserRole =
-    async (
-        req,
-        res,
-    ) => {
-  try {
+  async (
+    req,
+    res,
+  ) => {
+    try {
 
-    const { role } =
+      const { role } =
         req.body;
 
-    /*
-    =========================
-    VALIDATE ROLE
-    =========================
-    */
+      /*
+      =========================
+      VALIDATE ROLE
+      =========================
+      */
 
-    if (
+      if (
         ![
           "hirer",
           "employee",
           "guest",
-          "admin",
+          "owner",
         ].includes(role)
-    ) {
-      return res.status(400).json({
-        msg:
+      ) {
+        return res.status(400).json({
+          msg:
             "Invalid role",
-      });
-    }
+        });
+      }
 
-    /*
-    =========================
-    FIND USER
-    =========================
-    */
+      /*
+      =========================
+      FIND USER
+      =========================
+      */
 
-    const user =
+      const user =
         await User.findById(
-            req.params.id,
+          req.params.id,
         );
 
-    if (!user) {
-      return res.status(404).json({
-        msg:
+      if (!user) {
+        return res.status(404).json({
+          msg:
             "User not found",
-      });
-    }
+        });
+      }
 
-    /*
-    =========================
-    UPDATE ROLE
-    =========================
-    */
+      /*
+      =========================
+      UPDATE ROLE
+      =========================
+      */
 
-    user.role = role;
+      user.role = role;
 
-    /*
-    KEEP GUEST FLAG IN SYNC
-    */
+      /*
+      KEEP GUEST FLAG IN SYNC
+      */
 
-    user.isGuest =
+      user.isGuest =
         role === "guest";
 
-    await user.save();
+      await user.save();
 
-    /*
-    =========================
-    ADMIN LOG
-    =========================
-    */
+      /*
+      =========================
+      OWNER LOG
+      =========================
+      */
 
-    await logAdminAction({
-      adminId:
+      await logAdminAction({
+        adminId:
           req.user.id,
 
-      action:
+        action:
           "CHANGE_USER_ROLE",
 
-      targetType:
+        targetType:
           "user",
 
-      targetId:
+        targetId:
           user._id,
 
-      meta: {
-        newRole: role,
-      },
-    });
+        meta: {
+          newRole: role,
+        },
+      });
 
-    res.json({
-      msg:
+      res.json({
+        msg:
           "Role updated",
 
-      role:
+        role:
           user.role,
-    });
+      });
 
-  } catch (err) {
+    } catch (err) {
 
-    console.error(
-      "Change role error:",
-      err,
-    );
+      console.error(
+        "Change role error:",
+        err,
+      );
 
-    res.status(500).json({
-      msg:
+      res.status(500).json({
+        msg:
           "Role update failed",
-    });
-  }
-};
+      });
+    }
+  };
 
 /**
- * PATCH /admin/users/:id/soft-delete
+ * PATCH /owner/users/:id/soft-delete
  */
 export const softDeleteUser =
-    async (
-        req,
-        res,
-    ) => {
-  try {
+  async (
+    req,
+    res,
+  ) => {
+    try {
 
-    const user =
+      const user =
         await User.findById(
-            req.params.id,
+          req.params.id,
         );
 
-    if (!user) {
-      return res.status(404).json({
-        msg:
+      if (!user) {
+        return res.status(404).json({
+          msg:
             "User not found",
-      });
-    }
+        });
+      }
 
-    /*
-    PREVENT DOUBLE DELETE
-    */
+      /*
+      PREVENT DOUBLE DELETE
+      */
 
-    if (user.isDeleted) {
-      return res.status(400).json({
-        msg:
+      if (user.isDeleted) {
+        return res.status(400).json({
+          msg:
             "User already deleted",
-      });
-    }
+        });
+      }
 
-    user.isDeleted = true;
+      user.isDeleted = true;
 
-    user.deletedAt =
+      user.deletedAt =
         new Date();
 
-    await user.save();
+      await user.save();
 
-    /*
-    =========================
-    ADMIN LOG
-    =========================
-    */
+      /*
+      =========================
+      OWNER LOG
+      =========================
+      */
 
-    await logAdminAction({
-      adminId:
+      await logAdminAction({
+        adminId:
           req.user.id,
 
-      action:
+        action:
           "SOFT_DELETE_USER",
 
-      targetType:
+        targetType:
           "user",
 
-      targetId:
+        targetId:
           user._id,
-    });
+      });
 
-    res.json({
-      msg:
+      res.json({
+        msg:
           "User soft deleted successfully",
-    });
+      });
 
-  } catch (err) {
+    } catch (err) {
 
-    console.error(
-      "Soft delete error:",
-      err,
-    );
+      console.error(
+        "Soft delete error:",
+        err,
+      );
 
-    res.status(500).json({
-      msg:
+      res.status(500).json({
+        msg:
           "Failed to delete user",
-    });
-  }
-};
+      });
+    }
+  };
