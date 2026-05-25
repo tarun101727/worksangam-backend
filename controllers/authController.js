@@ -389,7 +389,7 @@ export const sendOtp = async (req, res) => {
 
 export const getCurrentUser = async (req, res) => {
   try {
-    const userId = req.user?._id;
+    const userId = req.user?.id; // ✅ FIXED
 
     if (!userId) {
       return res.status(401).json({ msg: 'Unauthorized' });
@@ -925,22 +925,17 @@ export const confirmEmailChange = async (req, res) => {
 
 
 export const verifyToken = async (req, res) => {
-
   try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ msg: 'No token provided' });
 
-    return res.status(200).json({
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(401).json({ msg: 'Invalid token' });
 
-      msg: "Token valid",
-
-      userId: req.user._id,
-    });
-
+    return res.status(200).json({ msg: 'Token is valid' });
   } catch (err) {
-
-    return res.status(401).json({
-
-      msg: "Invalid token",
-    });
+    return res.status(401).json({ msg: 'Invalid or expired token' });
   }
 };
 
@@ -1166,14 +1161,7 @@ export const createEmployeeAccount = async (req, res) => {
       skills,
       experience: Number(experience),
       bio,
-      languages:
-  typeof languages === "string"
-
-    ? languages
-        .split(",")
-        .map((l) => l.trim())
-
-    : [],
+      languages: languages.split(",").map((l) => l.trim()),
       avatarInitial: firstName.charAt(0).toUpperCase(),
       avatarColor: getAvatarColor(firstName),
       role: "employee",        // still keep (safe)
