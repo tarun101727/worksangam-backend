@@ -396,13 +396,16 @@ export const getCurrentUser = async (req, res) => {
     }
 
   const user = await User.findById(userId).select(
-  `
-  firstName lastName age gender genderLabel email role
-  profession skills experience languages bio
-  profileImage
-  avatarInitial avatarColor
-  isGuest location onboardingStep isAvailable ratingAverage ratingCount ratings credits welcomeBonusClaimed
-  `
+`
+_id
+firstName lastName age gender genderLabel email role
+profession skills experience languages bio
+profileImage
+avatarInitial avatarColor
+isGuest location onboardingStep isAvailable
+ratingAverage ratingCount ratings
+credits welcomeBonusClaimed
+`
 );
 
 
