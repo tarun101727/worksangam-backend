@@ -13,7 +13,9 @@ const authMiddleware = async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer ')
   ) {
-    token = req.headers.authorization.split(' ')[1];
+    token = req.headers.authorization
+  .split(' ')[1]
+  .trim();
   }
 
   // ✅ FALLBACK TO COOKIE
