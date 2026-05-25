@@ -994,41 +994,55 @@ export const deleteAccount = async (req, res) => {
 // authController.js
 export const createGuestUser = async (req, res) => {
   try {
-    const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
+
+    const guestEmail =
+      `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}@guest.local`;
 
     const guestUser = new User({
-  email: guestEmail,
-  role: 'guest',
-  isGuest: true,
-  isVerified: false,
-
-  onboardingStep: "completed",   // ✅ ADD THIS LINE
-
-  professionType: "guest",
-
-  avatarInitial: 'G',
-  avatarColor: '#999999',
-});
+      email: guestEmail,
+      role: 'guest',
+      isGuest: true,
+      isVerified: false,
+      onboardingStep: "completed",
+      professionType: "guest",
+      avatarInitial: 'G',
+      avatarColor: '#999999',
+    });
 
     await guestUser.save();
 
     const token = jwt.sign(
-      { id: guestUser._id, role: 'guest' },
+      {
+        id: guestUser._id,
+        role: 'guest'
+      },
       process.env.JWT_SECRET,
-      { expiresIn: '10y' }
+      {
+        expiresIn: '10y'
+      }
     );
 
     setAuthCookie(res, token, guestUser);
 
+    // ✅ IMPORTANT FIX
     res.status(201).json({
       msg: 'Guest created',
+
+      token, // ✅ ADD THIS
+
       user: {
         _id: guestUser._id,
         role: guestUser.role,
       },
     });
+
   } catch (err) {
-    res.status(500).json({ msg: 'Guest creation failed' });
+
+    console.error(err);
+
+    res.status(500).json({
+      msg: 'Guest creation failed'
+    });
   }
 };
 
