@@ -51,8 +51,7 @@ export const getMessages = async (req, res) => {
   const messages = await Message.find({
   chatId: req.params.chatId
 })
-.sort({ createdAt: -1 })
-.limit(30)
+.sort({ createdAt: 1 })
 
 .populate("sender", "profileImage firstName lastName");
 
