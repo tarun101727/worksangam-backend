@@ -73,12 +73,7 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
 
-  const {
-  message,
-  replyTo,
-  replyText,
-  clientTempId
-} = req.body;
+  const { message, replyTo, replyText } = req.body;
 
   const encrypted = encryptMessage(message);
 
@@ -96,8 +91,7 @@ const populated = await msg.populate("sender","profileImage firstName lastName")
 // Emit message to chat participants
 io.to(req.params.chatId).emit("receive-message", {
   ...populated._doc,
-  message,
-  clientTempId
+  message
 });
 
 // 🔔 Create notification for receiver
@@ -116,11 +110,7 @@ const populatedNotif = await chatNotification.populate("sender", "firstName last
 // Emit notification to receiver
 io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
 
-res.json({
-  ...populated._doc,
-  message,
-  clientTempId
-});
+res.json(populated);
 };
 
 export const sendMedia = async (req, res) => {
