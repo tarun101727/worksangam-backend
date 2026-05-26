@@ -1,270 +1,217 @@
 import { Server } from "socket.io";
 
-import Message from "./models/Message.js";
-
-import Chat from "./models/Chat.js";
-
-import ChatNotification from "./models/ChatNotification.js";
-
-import { encryptMessage } from "./utils/encryption.js";
-
 let io;
+
 
 const activeUrgentRequests = new Map();
 
+
 export const initSocket = (server) => {
-
   io = new Server(server, {
-
     cors: {
-
       origin: true,
-
       credentials: true,
     },
-
-    transports: ["websocket"],
   });
 
   io.on("connection", (socket) => {
-
-    const userId =
-        socket.handshake.auth.userId;
-
-    /*
-    USER ROOM
-    */
+    const userId = socket.handshake.auth.userId;
 
     if (userId) {
-
-      socket.join(userId);
-
-      console.log(
-        "👤 Joined personal room:",
-        userId,
-      );
+      socket.join(userId); // personal notification room
     }
 
-    console.log(
-      "🔌 Socket connected:",
-      socket.id,
-    );
+    console.log("🔌 Socket connected:", userId);
 
-    /*
-    JOIN CHAT
-    */
+    /* -------------------- VIDEO ROOM (NEW) -------------------- */
 
-    socket.on(
-      "join-chat",
-      (chatId) => {
+    socket.on("join-room", ({ roomId, role }) => {
 
-        socket.join(chatId);
+socket.join(roomId);
 
-        console.log(
-          `💬 User joined chat ${chatId}`,
-        );
-      },
-    );
+socket.to(roomId).emit("user-joined",{
+socketId:socket.id,
+role
+});
 
-    /*
-    TYPING
-    */
+});
 
-    socket.on(
-      "typing",
-      ({ chatId, userId }) => {
+    /* -------------------- PROFILE ROOM -------------------- */
 
-        socket.to(chatId).emit(
-          "user-typing",
-          { userId },
-        );
-      },
-    );
+    socket.on("join-profile", (profileId) => {
+      socket.join(`profile-${profileId}`);
+      console.log(`👤 Joined profile room profile-${profileId}`);
+    });
 
-    /*
-    STOP TYPING
-    */
+    /* -------------------- CHAT -------------------- */
 
-    socket.on(
-      "stop-typing",
-      ({ chatId, userId }) => {
+    socket.on("join-chat", (chatId) => {
+      socket.join(chatId);
+      console.log(`💬 User ${userId} joined chat ${chatId}`);
+    });
 
-        socket.to(chatId).emit(
-          "user-stop-typing",
-          { userId },
-        );
-      },
-    );
+    /* -------------------- TYPING -------------------- */
 
-    /*
-    SEND MESSAGE
-    */
+socket.on("typing", ({ chatId, userId }) => {
+  socket.to(chatId).emit("user-typing", { userId });
+});
 
-    socket.on(
-      "send-message",
+socket.on("stop-typing", ({ chatId, userId }) => {
+  socket.to(chatId).emit("user-stop-typing", { userId });
+});
 
-      async ({
-        chatId,
-        message,
-        sender,
-        receiverId,
-        replyTo,
-        replyText,
-      }) => {
+   socket.on("send-message", ({ chatId, message, sender, receiverId }) => {
 
-        try {
+  // send message to chat room
+  socket.to(chatId).emit("receive-message", {
+    message,
+    sender
+  });
 
-          /*
-          ENCRYPT
-          */
+  // 🔥 send notification to receiver directly
+  io.to(receiverId).emit("new-chat-notification", {
+    message,
+    sender,
+    chat: chatId,
+    createdAt: new Date()
+  });
 
-          const encrypted =
-              encryptMessage(message);
+});
 
-          /*
-          SAVE MESSAGE
-          */
+    /* -------------------- USER ROOM -------------------- */
 
-          const msg =
-              await Message.create({
+    socket.on("join-user", (userId) => {
+      socket.join(userId);
+      console.log(`👤 Joined user room ${userId}`);
+    });
 
-            chatId,
 
-            sender: sender._id,
+    /* -------------------- URGENT HIRER -------------------- */
 
-            encryptedMessage:
-                encrypted,
+socket.on("join-profession", (profession) => {
 
-            replyTo:
-                replyTo || null,
+  const room = `profession-${profession.toLowerCase()}`;
 
-            replyText:
-                replyText || "",
-          });
+  socket.join(room);
 
-          /*
-          PREPARE PAYLOAD
-          */
+  console.log(`🟢 Joined profession room ${room}`);
+});
 
-          const payload = {
+/*
+CREATE URGENT HIRE REQUEST
+*/
 
-            _id: msg._id,
+socket.on("create-urgent-hire", (data) => {
 
-            chatId,
+  const room =
+    `profession-${data.profession.toLowerCase()}`;
 
-            message,
+  const payload = {
+    requestId: data.requestId,
+    hirerId: data.hirerId,
+    hirerName: data.hirerName,
+    profileImage: data.profileImage,
+    profession: data.profession,
+    createdAt: Date.now(),
+  };
 
-            sender,
+  /*
+  SEND TO ALL USERS OF SAME PROFESSION
+  */
 
-            replyTo:
-                replyTo || null,
+  io.to(room).emit(
+    "urgent-hire-request",
+    payload,
+  );
 
-            replyText:
-                replyText || "",
+  console.log(
+    `🚨 Urgent hire sent to ${room}`,
+  );
+});
 
-            createdAt:
-                msg.createdAt,
-          };
+/*
+ACCEPT URGENT HIRE
+*/
 
-          /*
-          SEND TO CHAT ROOM
-          */
+socket.on("accept-urgent-hire", (data) => {
 
-          io.to(chatId).emit(
-            "receive-message",
-            payload,
-          );
+  /*
+  ALREADY ACCEPTED
+  */
 
-          /*
-          CREATE NOTIFICATION
-          */
+  if (
+    activeUrgentRequests.has(
+      data.requestId,
+    )
+  ) {
+    return;
+  }
 
-          await ChatNotification.create({
+  activeUrgentRequests.set(
+    data.requestId,
+    data.employeeId,
+  );
 
-            chat: chatId,
+  io.to(data.hirerId).emit(
+    "urgent-hire-accepted",
+    {
+      requestId: data.requestId,
+      employeeId: data.employeeId,
+    },
+  );
 
-            sender: sender._id,
+  /*
+  EXPIRE FOR OTHERS
+  */
 
-            receiver: receiverId,
+  io.emit(
+    "urgent-hire-expired",
+    {
+      requestId: data.requestId,
+    },
+  );
+});
 
-            message,
-          });
+/*
+DENY URGENT HIRE
+*/
 
-          /*
-          SEND NOTIFICATION
-          */
+socket.on("deny-urgent-hire", (data) => {
 
-          io.to(receiverId).emit(
-            "new-chat-notification",
-            {
-              chat: chatId,
-              message,
-              sender,
-              createdAt:
-                  new Date(),
-            },
-          );
+  socket.emit(
+    "urgent-hire-denied",
+    data,
+  );
+});
 
-        } catch (err) {
+/*
+EXPIRE URGENT HIRE
+*/
 
-          console.log(
-            "❌ send-message error:",
-            err,
-          );
-        }
-      },
-    );
+socket.on("expire-urgent-hire", (data) => {
 
-    /*
-    DELETE MESSAGE
-    */
+  io.emit(
+    "urgent-hire-expired",
+    {
+      requestId: data.requestId,
+    },
+  );
+});
 
-    socket.on(
-      "delete-message",
+    /* -------------------- DISCONNECT -------------------- */
 
-      async ({
-        messageId,
-        chatId,
-      }) => {
-
-        try {
-
-          await Message.findByIdAndDelete(
-            messageId,
-          );
-
-          io.to(chatId).emit(
-            "message-deleted",
-            messageId,
-          );
-
-        } catch (err) {
-
-          console.log(
-            "❌ delete-message error:",
-            err,
-          );
-        }
-      },
-    );
-
-    /*
-    DISCONNECT
-    */
-
-    socket.on(
-      "disconnect",
-      () => {
-
-        console.log(
-          "❌ Socket disconnected:",
-          socket.id,
-        );
-      },
-    );
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected:", userId);
+    });
   });
 
   return io;
+};
+
+/* 🔥 EXPORT EMITTER */
+export const emitJobToEmployees = (job) => {
+  if (!io) return;
+  io.emit("job-added-to-home", job); // broadcast to all connected users
 };
 
 export { io };
