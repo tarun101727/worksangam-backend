@@ -28,9 +28,20 @@ replyTo: {
   },
 
   replyText: {
-    type: String,
-    default: "",
-  }
+  type: String,
+  default: "",
+},
+
+replyImage: {
+  type: String,
+  default: "",
+},
+
+replyType: {
+  type: String,
+  enum: ["text", "image", "video"],
+  default: "text",
+}
 
 
 }, { timestamps: true });
