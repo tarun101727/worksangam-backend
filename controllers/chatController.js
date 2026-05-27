@@ -73,16 +73,30 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
 
-  const { message, replyTo, replyText } = req.body;
+  const {
+  message,
+  replyTo,
+  replyText,
+  replyImage,
+  replyType
+} = req.body;
 
   const encrypted = encryptMessage(message);
 
   const msg = await Message.create({
   chatId: req.params.chatId,
+
   sender: req.user.id,
+
   encryptedMessage: encrypted,
+
   replyTo: replyTo || null,
-  replyText: replyText || ""
+
+  replyText: replyText || "",
+
+  replyImage: replyImage || "",
+
+  replyType: replyType || "text",
 });
 
   // inside sendMessage
@@ -117,6 +131,13 @@ export const sendMedia = async (req, res) => {
   try {
 
     const caption = req.body?.caption || "";
+
+const {
+  replyTo,
+  replyText,
+  replyImage,
+  replyType
+} = req.body;
 
     let imageUrl = null;
 
@@ -161,11 +182,22 @@ export const sendMedia = async (req, res) => {
     */
 
     const msg = await Message.create({
-      chatId: req.params.chatId,
-      sender: req.user.id,
-      encryptedMessage: encrypted,
-      image: imageUrl,
-    });
+  chatId: req.params.chatId,
+
+  sender: req.user.id,
+
+  encryptedMessage: encrypted,
+
+  image: imageUrl,
+
+  replyTo: replyTo || null,
+
+  replyText: replyText || "",
+
+  replyImage: replyImage || "",
+
+  replyType: replyType || "text",
+});
 
     /*
     POPULATE SENDER
