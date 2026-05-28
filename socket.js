@@ -60,24 +60,6 @@ socket.on("stop-typing", ({ chatId, userId }) => {
   socket.to(chatId).emit("user-stop-typing", { userId });
 });
 
-   socket.on("send-message", ({ chatId, message, sender, receiverId }) => {
-
-  // send message to chat room
-  socket.to(chatId).emit("receive-message", {
-    message,
-    sender
-  });
-
-  // 🔥 send notification to receiver directly
-  io.to(receiverId).emit("new-chat-notification", {
-    message,
-    sender,
-    chat: chatId,
-    createdAt: new Date()
-  });
-
-});
-
     /* -------------------- USER ROOM -------------------- */
 
     socket.on("join-user", (userId) => {
