@@ -27,14 +27,44 @@ export const createChat = async (req, res) => {
 
 
 /* get user chats */
-
 export const getChats = async (req, res) => {
+  try {
 
-  const chats = await Chat.find({
-    participants: req.user.id
-  }).populate("participants", "firstName lastName profileImage avatarInitial");
+    const chats = await Chat.find({
+      participants: req.user.id
+    })
+      .populate(
+        "participants",
+        "firstName lastName profileImage avatarInitial avatarColor"
+      )
+      .sort({ updatedAt: -1 });
 
-  res.json(chats);
+    const chatsWithUnread = await Promise.all(
+      chats.map(async (chat) => {
+
+        const unreadCount =
+          await ChatNotification.countDocuments({
+            chat: chat._id,
+            receiver: req.user.id,
+            isRead: false,
+          });
+
+        return {
+          ...chat._doc,
+          unreadCount,
+        };
+      })
+    );
+
+    res.json(chatsWithUnread);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error"
+    });
+  }
 };
 
 
@@ -255,14 +285,31 @@ export const getChatNotifications = async (req, res) => {
 
 export const markChatNotificationsRead = async (req, res) => {
   try {
+
+    const { chatId } = req.body;
+
     await ChatNotification.updateMany(
-      { receiver: req.user.id, isRead: false },
-      { $set: { isRead: true } }
+      {
+        receiver: req.user.id,
+        chat: chatId,
+        isRead: false,
+      },
+      {
+        $set: { isRead: true }
+      }
     );
-    res.json({ msg: "Chat notifications marked as read" });
+
+    res.json({
+      msg: "Chat notifications marked as read"
+    });
+
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+
+    res.status(500).json({
+      msg: "Server error"
+    });
   }
 };
 
