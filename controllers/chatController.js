@@ -122,11 +122,11 @@ export const sendMessage = async (req, res) => {
 
   replyTo: replyTo || null,
 
-  replyText: replyText || "",
+  replyText: replyTo ? replyText || "" : null,
 
-  replyImage: replyImage || "",
+replyImage: replyTo ? replyImage || "" : null,
 
-  replyType: replyType || "text",
+replyType: replyTo ? replyType || "text" : null,
 });
 
   // inside sendMessage
@@ -222,11 +222,11 @@ const {
 
   replyTo: replyTo || null,
 
-  replyText: replyText || "",
+  replyText: replyTo ? replyText || "" : null,
 
-  replyImage: replyImage || "",
+replyImage: replyTo ? replyImage || "" : null,
 
-  replyType: replyType || "text",
+replyType: replyTo ? replyType || "text" : null,
 });
 
     /*
