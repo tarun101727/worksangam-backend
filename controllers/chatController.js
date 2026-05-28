@@ -288,6 +288,10 @@ export const markChatNotificationsRead = async (req, res) => {
 
     const { chatId } = req.body;
 
+    /*
+    MARK ALL CHAT NOTIFICATIONS READ
+    */
+
     await ChatNotification.updateMany(
       {
         receiver: req.user.id,
@@ -295,12 +299,25 @@ export const markChatNotificationsRead = async (req, res) => {
         isRead: false,
       },
       {
-        $set: { isRead: true }
+        $set: {
+          isRead: true,
+        },
+      }
+    );
+
+    /*
+    🔥 EMIT GLOBAL CHAT READ EVENT
+    */
+
+    io.to(req.user.id).emit(
+      "chat-read",
+      {
+        chatId,
       }
     );
 
     res.json({
-      msg: "Chat notifications marked as read"
+      msg: "Chat notifications marked as read",
     });
 
   } catch (err) {
@@ -308,7 +325,7 @@ export const markChatNotificationsRead = async (req, res) => {
     console.error(err);
 
     res.status(500).json({
-      msg: "Server error"
+      msg: "Server error",
     });
   }
 };
