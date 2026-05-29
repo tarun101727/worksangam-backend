@@ -20,6 +20,20 @@ const messageSchema = new mongoose.Schema({
   type:String
 } ,
 
+location: {
+  lat: Number,
+  lng: Number,
+
+  type: {
+    type: String,
+    enum: ["current", "live"],
+  },
+},
+
+liveLocationActive: {
+  type: Boolean,
+  default: true,
+},
 
 replyTo: {
     type: mongoose.Schema.Types.ObjectId,
