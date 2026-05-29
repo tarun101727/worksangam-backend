@@ -105,6 +105,7 @@ export const sendMessage = async (req, res) => {
 
   const {
   message,
+  location,
   replyTo,
   replyText,
   replyImage,
@@ -120,6 +121,8 @@ export const sendMessage = async (req, res) => {
 
   encryptedMessage: encrypted,
 
+  location: location || null,
+
   replyTo: replyTo || null,
 
   replyText: replyTo ? replyText || "" : null,
@@ -128,6 +131,8 @@ replyImage: replyTo ? replyImage || "" : null,
 
 replyType: replyTo ? replyType || "text" : null,
 });
+
+
 
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
