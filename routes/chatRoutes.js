@@ -10,7 +10,8 @@ import {
   markChatNotificationsRead,
   reportMessage,
   sendMedia,
-  sendMessage
+  sendMessage,
+  stopLiveLocation
 } from "../controllers/chatController.js";
 
 const storage = multer.diskStorage({
@@ -74,5 +75,11 @@ router.put("/notifications/read", authMiddleware, markChatNotificationsRead);
 
 router.delete("/message/:id", authMiddleware, deleteMessage);
 router.post("/report/:id", authMiddleware, reportMessage);
+
+router.put(
+  "/stop-live/:id",
+  authMiddleware,
+  stopLiveLocation
+);
 
 export default router;
