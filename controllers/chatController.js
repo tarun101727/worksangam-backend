@@ -363,3 +363,27 @@ export const reportMessage = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+
+export const stopLiveLocation =
+async (req, res) => {
+
+  const msg =
+      await Message.findById(
+    req.params.id,
+  );
+
+  if (!msg) {
+    return res.status(404).json({
+      msg: "Not found",
+    });
+  }
+
+  msg.liveLocationActive = false;
+
+  await msg.save();
+
+  res.json({
+    success: true,
+  });
+};
