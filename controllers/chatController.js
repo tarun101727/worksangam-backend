@@ -135,10 +135,11 @@ replyType: replyTo ? replyType || "text" : null,
   // inside sendMessage
 const populated = await msg.populate("sender","profileImage firstName lastName");
 
-// Emit message to chat participants
+// FIX: include location for frontend map rendering
 io.to(req.params.chatId).emit("receive-message", {
   ...populated._doc,
-  message
+  message,
+  location: populated.location, // <-- ADD THIS LINE
 });
 
 // 🔔 Create notification for receiver
@@ -245,13 +246,11 @@ replyType: replyTo ? replyType || "text" : null,
     SOCKET EMIT
     */
 
-    io.to(req.params.chatId).emit(
-      "receive-message",
-      {
-        ...populated._doc,
-        message: caption,
-      }
-    );
+    io.to(req.params.chatId).emit("receive-message", {
+  ...populated._doc,
+  message: caption,
+  location: populated.location, // <-- ADD THIS LINE if sending location
+});
 
     /*
     RETURN RESPONSE
