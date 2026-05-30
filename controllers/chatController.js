@@ -104,12 +104,13 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
 
   const {
-  message,
-  replyTo,
-  replyText,
-  replyImage,
-  replyType
-} = req.body;
+    message,
+    location,
+    replyTo,
+    replyText,
+    replyImage,
+    replyType
+  } = req.body;
 
   const encrypted = encryptMessage(message);
 
@@ -119,6 +120,8 @@ export const sendMessage = async (req, res) => {
   sender: req.user.id,
 
   encryptedMessage: encrypted,
+
+  location: location || null,
 
   replyTo: replyTo || null,
 
