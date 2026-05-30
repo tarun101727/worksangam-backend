@@ -24,6 +24,11 @@ location: {
   lat: Number,
   lng: Number,
 
+  address: {
+    type: String,
+    default: "",
+  },
+
   type: {
     type: String,
     enum: ["current", "live"],
