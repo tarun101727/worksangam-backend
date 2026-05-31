@@ -11,7 +11,8 @@ import {
   reportMessage,
   sendMedia,
   sendMessage,
-  stopLiveLocation
+  stopLiveLocation,
+  updateLiveLocation
 } from "../controllers/chatController.js";
 
 const storage = multer.diskStorage({
@@ -80,6 +81,13 @@ router.put(
   "/stop-live/:id",
   authMiddleware,
   stopLiveLocation
+);
+
+
+router.put(
+  "/update-live/:id",
+  authMiddleware,
+  updateLiveLocation,
 );
 
 export default router;
