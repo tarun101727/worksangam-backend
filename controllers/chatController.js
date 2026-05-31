@@ -112,6 +112,24 @@ export const sendMessage = async (req, res) => {
     replyType
   } = req.body;
 
+  /*
+  Normalize coordinates
+  */
+
+  if (
+    location &&
+    location.lat != null &&
+    location.lng != null
+  ) {
+    location.lat = Number(
+      Number(location.lat).toFixed(6)
+    );
+
+    location.lng = Number(
+      Number(location.lng).toFixed(6)
+    );
+  }
+
   const encrypted = encryptMessage(message);
 
   const msg = await Message.create({
