@@ -31,13 +31,22 @@ location: {
 
   type: {
     type: String,
-    enum: ["current", "live"],
+    enum: [
+      "current",
+      "live",
+      "stopped",
+    ],
   },
 },
 
 liveLocationActive: {
   type: Boolean,
   default: true,
+},
+
+liveLocationEndedAt: {
+  type: Date,
+  default: null,
 },
 
 replyTo: {
