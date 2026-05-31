@@ -102,46 +102,63 @@ export const getMessages = async (req, res) => {
 /* send message */
 
 export const sendMessage = async (req, res) => {
-  const { message, location, replyTo, replyText, replyImage, replyType } = req.body;
+
+  const {
+    message,
+    location,
+    replyTo,
+    replyText,
+    replyImage,
+    replyType
+  } = req.body;
 
   const encrypted = encryptMessage(message);
 
-  // ✅ Parse and validate location
-  let loc = null;
-  if (location) {
-    const lat = parseFloat(location.lat);
-    const lng = parseFloat(location.lng);
-
-    if (!isNaN(lat) && !isNaN(lng)) {
-      loc = {
-        lat,
-        lng,
-        address: location.address || "",
-        type: location.type || "current",
-      };
-    }
-  }
-
   const msg = await Message.create({
-    chatId: req.params.chatId,
-    sender: req.user.id,
-    encryptedMessage: encrypted,
-    location: loc,
-    replyTo: replyTo || null,
-    replyText: replyTo ? replyText || "" : null,
-    replyImage: replyTo ? replyImage || "" : null,
-    replyType: replyTo ? replyType || "text" : null,
-  });
+  chatId: req.params.chatId,
 
-  const populated = await msg.populate("sender", "profileImage firstName lastName");
+  sender: req.user.id,
 
-  io.to(req.params.chatId).emit("receive-message", {
-    ...populated._doc,
-    message,
-    location: populated.location, // ✅ ensures frontend map works correctly
-  });
+  encryptedMessage: encrypted,
 
-  res.json(populated);
+  location: location || null,
+
+  replyTo: replyTo || null,
+
+  replyText: replyTo ? replyText || "" : null,
+
+replyImage: replyTo ? replyImage || "" : null,
+
+replyType: replyTo ? replyType || "text" : null,
+});
+
+  // inside sendMessage
+const populated = await msg.populate("sender","profileImage firstName lastName");
+
+// FIX: include location for frontend map rendering
+io.to(req.params.chatId).emit("receive-message", {
+  ...populated._doc,
+  message,
+  location: populated.location, // <-- ADD THIS LINE
+});
+
+// 🔔 Create notification for receiver
+const chat = await Chat.findById(req.params.chatId);
+const receiverId = chat.participants.find(id => id.toString() !== req.user.id);
+
+const chatNotification = await ChatNotification.create({
+  chat: chat._id,
+  sender: req.user.id,
+  receiver: receiverId,
+  message,
+});
+
+const populatedNotif = await chatNotification.populate("sender", "firstName lastName profileImage");
+
+// Emit notification to receiver
+io.to(receiverId.toString()).emit("new-chat-notification", populatedNotif);
+
+res.json(populated);
 };
 
 export const sendMedia = async (req, res) => {
