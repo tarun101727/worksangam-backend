@@ -380,7 +380,73 @@ async (req, res) => {
 
   msg.liveLocationActive = false;
 
+msg.location.type =
+    "stopped";
+
+msg.liveLocationEndedAt =
+    new Date();
+
+await msg.save();
+
+io.to(
+  msg.chatId.toString(),
+).emit(
+  "live-location-stopped",
+  {
+    messageId: msg._id,
+  },
+);
+
+  res.json({
+    success: true,
+  });
+};
+
+
+export const updateLiveLocation =
+async (req, res) => {
+
+  const {
+    lat,
+    lng,
+    address,
+  } = req.body;
+
+  const msg =
+      await Message.findById(
+    req.params.id,
+  );
+
+  if (!msg) {
+    return res.status(404).json({
+      msg: "Not found",
+    });
+  }
+
+  if (!msg.liveLocationActive) {
+    return res.json({
+      success: true,
+    });
+  }
+
+  msg.location.lat = lat;
+  msg.location.lng = lng;
+  msg.location.address =
+      address || "";
+
   await msg.save();
+
+  io.to(
+    msg.chatId.toString(),
+  ).emit(
+    "live-location-update",
+    {
+      messageId: msg._id,
+      lat,
+      lng,
+      address,
+    },
+  );
 
   res.json({
     success: true,
