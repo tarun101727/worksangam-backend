@@ -21,15 +21,8 @@ const messageSchema = new mongoose.Schema({
 } ,
 
 location: {
-  lat: {
-    type: Number,
-    default: null,
-  },
-
-  lng: {
-    type: Number,
-    default: null,
-  },
+  lat: Number,
+  lng: Number,
 
   address: {
     type: String,
