@@ -6,6 +6,9 @@ import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import https from "https";
 
+const GOOGLE_MAPS_API_KEY =
+  "AIzaSyDl-UiO1vV1Pe3vekbl0dLAFGNROTkqR3w";
+
 const uploadToCloudinary = (file, isVideo) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -349,62 +352,46 @@ export const getLocationFromCoordinates = async (req, res) => {
     const { lat, lng } = req.query;
 
     if (!lat || !lng) {
-
       return res.status(400).json({
         msg: "Latitude and longitude are required",
       });
     }
 
-    console.log("LAT:", lat);
-    console.log("LNG:", lng);
-
-    const response = await axios.get(
-      "https://nominatim.openstreetmap.org/reverse",
+    const googleResponse = await axios.get(
+      "https://maps.googleapis.com/maps/api/geocode/json",
       {
         params: {
-          lat,
-          lon: lng,
-          format: "jsonv2",
+          latlng: `${lat},${lng}`,
+          key: GOOGLE_MAPS_API_KEY,
         },
-
-        headers: {
-          "User-Agent":
-            "WorkSangamApp/1.0 (worksangamindia@gmail.com)",
-        },
-
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: true,
-        }),
-
-        timeout: 15000,
       }
     );
 
-    console.log(
-      "NOMINATIM RESPONSE:",
-      response.data
-    );
+    if (
+      googleResponse.data.status !== "OK" ||
+      !googleResponse.data.results.length
+    ) {
+      return res.status(404).json({
+        msg: "Address not found",
+      });
+    }
+
+    const address =
+      googleResponse.data.results[0].formatted_address;
 
     return res.status(200).json({
-      address:
-        response.data.display_name ||
-        "Address not found",
+      address,
     });
 
   } catch (err) {
 
     console.error(
-      "GEOCODE ERROR:",
-      err.response?.data ||
-      err.message ||
-      err
+      "GOOGLE GEOCODE ERROR:",
+      err.response?.data || err.message
     );
 
     return res.status(500).json({
       msg: "Failed to fetch address",
-      error:
-        err.response?.data ||
-        err.message,
     });
   }
 };
