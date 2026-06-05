@@ -345,19 +345,6 @@ export const createOnlinePost = async (req, res) => {
   try {
     const hirerId = req.user.id;
 
-    const user = await User.findById(hirerId);
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    // 🔥 CREDIT CHECK
-    if (!user.credits || user.credits < 5) {
-      return res.status(400).json({
-        msg: "Not enough credits. Please purchase credits.",
-      });
-    }
-
     const {
       profession,
       description,
@@ -366,7 +353,7 @@ export const createOnlinePost = async (req, res) => {
       minPrice,
       maxPrice,
       currency,
-      languages = []
+      languages = [],
     } = req.body;
 
     if (!profession || !description) {
@@ -375,19 +362,25 @@ export const createOnlinePost = async (req, res) => {
       });
     }
 
-    // 🔥 DEDUCT CREDITS FIRST
-    user.credits -= 5;
-    await user.save();
-
-    // ================= CREATE JOB =================
     const professionType = "online";
 
     let price = null;
+
     if (priceType === "fixed") {
-      price = { type: "fixed", value: expectedPrice, currency };
+      price = {
+        type: "fixed",
+        value: expectedPrice,
+        currency,
+      };
     }
+
     if (priceType === "negotiable") {
-      price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+      price = {
+        type: "negotiable",
+        min: minPrice,
+        max: maxPrice,
+        currency,
+      };
     }
 
     const post = await HirerPost.create({
@@ -398,38 +391,44 @@ export const createOnlinePost = async (req, res) => {
       price,
       postType: "normal",
       status: "pending",
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      ),
       languages,
     });
 
-    // 🔥 SEND NOTIFICATIONS (existing logic)
     const employees = await User.find({
       role: "employee",
       profession: profession,
-      isAvailable: true
+      isAvailable: true,
     }).select("_id");
 
-    employees.forEach(emp => {
-      io.to(emp._id.toString()).emit("new-job-notification", {
-        type: "new_job",
-        postId: post._id,
-        profession: post.profession,
-        description: post.description,
-        price: post.price,
-        hirer: { _id: hirerId }
-      });
+    employees.forEach((emp) => {
+      io.to(emp._id.toString()).emit(
+        "new-job-notification",
+        {
+          type: "new_job",
+          postId: post._id,
+          profession: post.profession,
+          description: post.description,
+          price: post.price,
+          hirer: {
+            _id: hirerId,
+          },
+        }
+      );
     });
 
-    // 🔥 RETURN UPDATED CREDITS
-    res.json({
+    res.status(201).json({
       msg: "Online job post created",
       job: post,
-      remainingCredits: user.credits,
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      msg: "Server error",
+    });
   }
 };
 
