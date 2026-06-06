@@ -219,3 +219,38 @@ export const getPaymentStatus = async (req, res) => {
     });
   }
 };
+
+
+export const verifySubscriptionPayment = async (req, res) => {
+
+  try {
+
+    const {
+      orderId,
+    } = req.body;
+
+    const payment =
+      await Payment.findOne({
+        orderId,
+      });
+
+    if (!payment) {
+      return res.status(404).json({
+        msg: "Payment not found",
+      });
+    }
+
+    return res.json({
+      status: payment.status,
+      plan: payment.plan,
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error",
+    });
+  }
+};
