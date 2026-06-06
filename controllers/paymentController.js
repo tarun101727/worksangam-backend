@@ -1,18 +1,21 @@
 import axios from "axios";
 import Payment from "../models/Payment.js";
-import { CREDIT_PLANS } from "../utils/creditPlans.js";
 import User from "../models/User.js";
 
-
+const SUBSCRIPTION_PLANS = {
+  299: "BASIC",
+  599: "PREMIUM",
+  999: "VIP",
+};
 
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user.id;
     const { amount } = req.body;
 
-    const credits = CREDIT_PLANS[amount];
+    const plan = SUBSCRIPTION_PLANS[amount];
 
-    if (!credits) {
+if (!plan) {
       return res.status(400).json({ msg: "Invalid plan" });
     }
 
@@ -26,11 +29,11 @@ export const createOrder = async (req, res) => {
     const orderId = `order_${Date.now()}`;
 
     await Payment.create({
-      userId,
-      orderId,
-      amount,
-      credits,
-    });
+  userId,
+  orderId,
+  amount,
+  plan,
+});
 
     const response = await axios.post(
   "https://api.cashfree.com/pg/orders",
@@ -96,16 +99,49 @@ export const cashfreeWebhook = async (req, res) => {
     if (payment.status === "SUCCESS") return res.sendStatus(200);
 
     if (paymentStatus === "SUCCESS") {
-      payment.status = "SUCCESS";
-      await payment.save();
 
-      // ✅ ADD CREDITS
-      await User.findByIdAndUpdate(payment.userId, {
-        $inc: { credits: payment.credits },
-      });
+  payment.status = "SUCCESS";
 
-      console.log(`✅ Credits added: +${payment.credits}`);
-    } else {
+  await payment.save();
+
+  const user =
+    await User.findById(
+      payment.userId
+    );
+
+  const now = new Date();
+
+  const currentExpiry =
+    user?.subscriptionEnd &&
+    user.subscriptionEnd > now
+      ? user.subscriptionEnd
+      : now;
+
+  const endDate =
+    new Date(currentExpiry);
+
+  endDate.setDate(
+    endDate.getDate() + 30
+  );
+
+  await User.findByIdAndUpdate(
+    payment.userId,
+    {
+      subscriptionPlan:
+        payment.plan,
+
+      subscriptionStart:
+        now,
+
+      subscriptionEnd:
+        endDate,
+    }
+  );
+
+  console.log(
+    `✅ Subscription Activated: ${payment.plan}`
+  );
+} else {
       payment.status = "FAILED";
       await payment.save();
       console.log("❌ Payment failed");
@@ -132,3 +168,26 @@ export const getUserPayments = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+
+export const getSubscription =
+  async (req, res) => {
+
+    try {
+
+      const user =
+        await User.findById(
+          req.user.id,
+        ).select(
+          "subscriptionPlan subscriptionStart subscriptionEnd"
+        );
+
+      res.json(user);
+
+    } catch (err) {
+
+      res.status(500).json({
+        msg: "Server error",
+      });
+    }
+  };
