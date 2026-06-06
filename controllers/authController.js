@@ -404,7 +404,11 @@ profileImage
 avatarInitial avatarColor
 isGuest location onboardingStep isAvailable
 ratingAverage ratingCount ratings
-credits welcomeBonusClaimed
+credits
+welcomeBonusClaimed
+subscriptionPlan
+subscriptionStart
+subscriptionEnd
 `
 );
 
