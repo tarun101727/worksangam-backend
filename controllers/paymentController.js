@@ -170,8 +170,7 @@ export const getUserPayments = async (req, res) => {
 };
 
 
-export const getSubscription =
-  async (req, res) => {
+export const getSubscription = async (req, res) => {
 
     try {
 
@@ -191,3 +190,32 @@ export const getSubscription =
       });
     }
   };
+
+
+export const getPaymentStatus = async (req, res) => {
+  try {
+
+    const payment =
+      await Payment.findOne({
+        orderId: req.params.orderId,
+      });
+
+    if (!payment) {
+      return res.status(404).json({
+        msg: "Payment not found",
+      });
+    }
+
+    res.json({
+      status: payment.status,
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error",
+    });
+  }
+};
