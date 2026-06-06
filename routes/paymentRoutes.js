@@ -1,6 +1,6 @@
 // routes/paymentRoutes.js
 import express from "express";
-import { createOrder, cashfreeWebhook, getUserPayments, getSubscription, getPaymentStatus } from "../controllers/paymentController.js";
+import { createOrder, cashfreeWebhook, getUserPayments, getSubscription, getPaymentStatus, verifySubscriptionPayment } from "../controllers/paymentController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -18,6 +18,12 @@ router.get(
   "/payment-status/:orderId",
   authMiddleware,
   getPaymentStatus
+);
+
+router.post(
+  "/verify-subscription",
+  authMiddleware,
+  verifySubscriptionPayment
 );
 
 export default router;
