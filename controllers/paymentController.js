@@ -206,6 +206,19 @@ export const getPaymentStatus = async (req, res) => {
       });
     }
 
+    // Auto mark pending payment as failed after 30 seconds
+if (
+  payment.status === "PENDING" &&
+  Date.now() -
+  new Date(payment.createdAt).getTime()
+  > 30 * 1000
+) {
+
+  payment.status = "FAILED";
+
+  await payment.save();
+}
+
     res.json({
       status: payment.status,
     });
