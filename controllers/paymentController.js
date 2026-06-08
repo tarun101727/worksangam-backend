@@ -181,16 +181,11 @@ export const createOrder = async (req, res) => {
 
     return res.json({
 
-      order_id: orderId,
+  order_id: orderId,
 
-      payment_link:
-        paymentLink,
-
-      payment_session_id:
-        order.data
-          ?.payment_session_id ??
-        null,
-    });
+  payment_session_id:
+    order.data.payment_session_id,
+});
 
   } catch (err) {
 
