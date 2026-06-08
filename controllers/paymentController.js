@@ -10,204 +10,70 @@ const SUBSCRIPTION_PLANS = {
 
 export const createOrder = async (req, res) => {
   try {
-
     const userId = req.user.id;
     const { amount } = req.body;
 
-    const plan =
-      SUBSCRIPTION_PLANS[amount];
+    const plan = SUBSCRIPTION_PLANS[amount];
 
-    if (!plan) {
-      return res.status(400).json({
-        msg: "Invalid plan",
-      });
+if (!plan) {
+      return res.status(400).json({ msg: "Invalid plan" });
     }
 
-    const user =
-      await User.findById(userId);
+    // ✅ GET USER FROM DB
+    const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
+      return res.status(404).json({ msg: "User not found" });
     }
 
-    const orderId =
-      `order_${Date.now()}`;
+    const orderId = `order_${Date.now()}`;
 
     await Payment.create({
-      userId,
-      orderId,
-      amount,
-      plan,
-    });
+  userId,
+  orderId,
+  amount,
+  plan,
+});
 
-    /*
-    CREATE CASHFREE ORDER
-    */
+    const response = await axios.post(
+  "https://api.cashfree.com/pg/orders",
+  {
+    order_id: orderId,
+    order_amount: amount,
+    order_currency: "INR",
 
-    const order =
-      await axios.post(
-        "https://api.cashfree.com/pg/orders",
-        {
-          order_id: orderId,
-          order_amount: amount,
-          order_currency: "INR",
+    customer_details: {
+      customer_id: userId,
+      customer_email: user.email,
+      customer_phone:
+        "9" + Math.floor(100000000 + Math.random() * 900000000),
+    },
 
-          customer_details: {
-            customer_id: userId,
-            customer_email: user.email,
-            customer_phone:
-              "9" +
-              Math.floor(
-                100000000 +
-                Math.random() *
-                900000000
-              ),
-          },
-        },
-        {
-          headers: {
-            "x-client-id":
-              process.env.CASHFREE_APP_ID,
+    order_meta: {
+      return_url: `https://worksangam.in/payment-success?order_id=${orderId}`,
+    },
+  },
+  {
+    headers: {
+      "x-client-id": process.env.CASHFREE_APP_ID,
+      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+      "x-api-version": "2022-09-01",
+    },
+  }
+);
 
-            "x-client-secret":
-              process.env.CASHFREE_SECRET_KEY,
-
-            "x-api-version":
-              "2023-08-01",
-          },
-        }
-      );
-
-    console.log(
-      "=============================="
-    );
-
-    console.log(
-      "CASHFREE ORDER RESPONSE"
-    );
-
-    console.log(
-      JSON.stringify(
-        order.data,
-        null,
-        2
-      )
-    );
-
-    console.log(
-      "=============================="
-    );
-
-    /*
-    TRY TO CREATE PAYMENT LINK
-    */
-
-    let paymentLink = null;
-
-    try {
-
-      const payment =
-        await axios.post(
-          `https://api.cashfree.com/pg/orders/${orderId}/payments`,
-          {
-            payment_method: {
-              upi: {
-                channel: "link",
-              },
-            },
-          },
-          {
-            headers: {
-              "x-client-id":
-                process.env.CASHFREE_APP_ID,
-
-              "x-client-secret":
-                process.env.CASHFREE_SECRET_KEY,
-
-              "x-api-version":
-                "2023-08-01",
-            },
-          }
-        );
-
-      console.log(
-        "=============================="
-      );
-
-      console.log(
-        "CASHFREE PAYMENT RESPONSE"
-      );
-
-      console.log(
-        JSON.stringify(
-          payment.data,
-          null,
-          2
-        )
-      );
-
-      console.log(
-        "=============================="
-      );
-
-      paymentLink =
-        payment.data?.payment_link ??
-        null;
-
-    } catch (paymentError) {
-
-      console.log(
-        "PAYMENT API ERROR"
-      );
-
-      console.log(
-        paymentError.response?.status
-      );
-
-      console.log(
-        JSON.stringify(
-          paymentError.response?.data,
-          null,
-          2
-        )
-      );
-    }
-
-    /*
-    RESPONSE TO FLUTTER
-    */
-
-    return res.json({
-
-  order_id: orderId,
+   res.json({
 
   payment_session_id:
-    order.data.payment_session_id,
+      response.data.payment_session_id,
+
+  order_id:
+      response.data.order_id,
 });
 
   } catch (err) {
-
-    console.log(
-      "FULL CASHFREE ERROR"
-    );
-
-    console.log(
-      err.response?.status
-    );
-
-    console.log(
-      JSON.stringify(
-        err.response?.data,
-        null,
-        2
-      )
-    );
-
-    return res.status(500).json({
-      msg: "Payment creation failed",
-    });
+    console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
+    res.status(500).json({ msg: "Order creation failed" });
   }
 };
 
@@ -339,6 +205,19 @@ export const getPaymentStatus = async (req, res) => {
         msg: "Payment not found",
       });
     }
+
+    // Auto mark pending payment as failed after 30 seconds
+if (
+  payment.status === "PENDING" &&
+  Date.now() -
+  new Date(payment.createdAt).getTime()
+  > 30 * 1000
+) {
+
+  payment.status = "FAILED";
+
+  await payment.save();
+}
 
     res.json({
       status: payment.status,
