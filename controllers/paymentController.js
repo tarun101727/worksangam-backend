@@ -42,6 +42,10 @@ export const createOrder = async (req, res) => {
       plan,
     });
 
+    /*
+    CREATE CASHFREE ORDER
+    */
+
     const order =
       await axios.post(
         "https://api.cashfree.com/pg/orders",
@@ -76,63 +80,134 @@ export const createOrder = async (req, res) => {
         }
       );
 
-    const payment =
-  await axios.post(
-    `https://api.cashfree.com/pg/orders/${orderId}/payments`,
-    {
-      payment_method: {
-        upi: {
-          channel: "link",
-        },
-      },
-    },
-    {
-      headers: {
-        "x-client-id":
-          process.env.CASHFREE_APP_ID,
+    console.log(
+      "=============================="
+    );
 
-        "x-client-secret":
-          process.env.CASHFREE_SECRET_KEY,
+    console.log(
+      "CASHFREE ORDER RESPONSE"
+    );
 
-        "x-api-version":
-          "2023-08-01",
-      },
+    console.log(
+      JSON.stringify(
+        order.data,
+        null,
+        2
+      )
+    );
+
+    console.log(
+      "=============================="
+    );
+
+    /*
+    TRY TO CREATE PAYMENT LINK
+    */
+
+    let paymentLink = null;
+
+    try {
+
+      const payment =
+        await axios.post(
+          `https://api.cashfree.com/pg/orders/${orderId}/payments`,
+          {
+            payment_method: {
+              upi: {
+                channel: "link",
+              },
+            },
+          },
+          {
+            headers: {
+              "x-client-id":
+                process.env.CASHFREE_APP_ID,
+
+              "x-client-secret":
+                process.env.CASHFREE_SECRET_KEY,
+
+              "x-api-version":
+                "2023-08-01",
+            },
+          }
+        );
+
+      console.log(
+        "=============================="
+      );
+
+      console.log(
+        "CASHFREE PAYMENT RESPONSE"
+      );
+
+      console.log(
+        JSON.stringify(
+          payment.data,
+          null,
+          2
+        )
+      );
+
+      console.log(
+        "=============================="
+      );
+
+      paymentLink =
+        payment.data?.payment_link ??
+        null;
+
+    } catch (paymentError) {
+
+      console.log(
+        "PAYMENT API ERROR"
+      );
+
+      console.log(
+        paymentError.response?.status
+      );
+
+      console.log(
+        JSON.stringify(
+          paymentError.response?.data,
+          null,
+          2
+        )
+      );
     }
-  );
 
-console.log(
-  "=============================="
-);
+    /*
+    RESPONSE TO FLUTTER
+    */
 
-console.log(
-  "CASHFREE PAYMENT RESPONSE:"
-);
+    return res.json({
 
-console.log(
-  JSON.stringify(
-    payment.data,
-    null,
-    2
-  )
-);
+      order_id: orderId,
 
-console.log(
-  "=============================="
-);
+      payment_link:
+        paymentLink,
 
-return res.json({
-
-  order_id: orderId,
-
-  payment_link:
-    payment.data.payment_link,
-});
+      payment_session_id:
+        order.data
+          ?.payment_session_id ??
+        null,
+    });
 
   } catch (err) {
 
-    console.error(
-      err.response?.data ||
-      err.message
+    console.log(
+      "FULL CASHFREE ERROR"
+    );
+
+    console.log(
+      err.response?.status
+    );
+
+    console.log(
+      JSON.stringify(
+        err.response?.data,
+        null,
+        2
+      )
     );
 
     return res.status(500).json({
