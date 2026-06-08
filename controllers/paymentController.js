@@ -77,36 +77,56 @@ export const createOrder = async (req, res) => {
       );
 
     const payment =
-      await axios.post(
-        `https://api.cashfree.com/pg/orders/${orderId}/payments`,
-        {
-          payment_method: {
-            upi: {
-              channel: "link",
-            },
-          },
+  await axios.post(
+    `https://api.cashfree.com/pg/orders/${orderId}/payments`,
+    {
+      payment_method: {
+        upi: {
+          channel: "link",
         },
-        {
-          headers: {
-            "x-client-id":
-              process.env.CASHFREE_APP_ID,
+      },
+    },
+    {
+      headers: {
+        "x-client-id":
+          process.env.CASHFREE_APP_ID,
 
-            "x-client-secret":
-              process.env.CASHFREE_SECRET_KEY,
+        "x-client-secret":
+          process.env.CASHFREE_SECRET_KEY,
 
-            "x-api-version":
-              "2023-08-01",
-          },
-        }
-      );
+        "x-api-version":
+          "2023-08-01",
+      },
+    }
+  );
 
-    return res.json({
+console.log(
+  "=============================="
+);
 
-      order_id: orderId,
+console.log(
+  "CASHFREE PAYMENT RESPONSE:"
+);
 
-      payment_link:
-        payment.data.payment_link,
-    });
+console.log(
+  JSON.stringify(
+    payment.data,
+    null,
+    2
+  )
+);
+
+console.log(
+  "=============================="
+);
+
+return res.json({
+
+  order_id: orderId,
+
+  payment_link:
+    payment.data.payment_link,
+});
 
   } catch (err) {
 
