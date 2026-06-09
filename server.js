@@ -1,5 +1,5 @@
 import express from 'express';
-import dotenv from 'dotenv'; 
+import dotenv from 'dotenv';
 import cors from 'cors';
 import http from 'http';
 import cookieParser from 'cookie-parser';
@@ -21,6 +21,7 @@ import pushRoutes from './routes/pushRoutes.js';
 import paymentRoutes from "./routes/paymentRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 dotenv.config();
+
 
 const app = express();
 const server = http.createServer(app); // ✅ CORRECT
