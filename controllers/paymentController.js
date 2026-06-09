@@ -1,269 +1,41 @@
 import axios from "axios";
 import Payment from "../models/Payment.js";
-import User from "../models/User.js";
 
-const SUBSCRIPTION_PLANS = {
-  299: "BASIC",
-  599: "PREMIUM",
-  999: "VIP",
-};
+export const createOrder = async(req,res)=>{
 
-export const createOrder = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { amount } = req.body;
+const {planName,amount} = req.body;
 
-    const plan = SUBSCRIPTION_PLANS[amount];
+const orderId =
+"WS_" + Date.now();
 
-if (!plan) {
-      return res.status(400).json({ msg: "Invalid plan" });
-    }
-
-    // ✅ GET USER FROM DB
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    const orderId = `order_${Date.now()}`;
-
-    await Payment.create({
-  userId,
-  orderId,
-  amount,
-  plan,
-});
-
-    const response = await axios.post(
-  "https://api.cashfree.com/pg/orders",
-  {
-    order_id: orderId,
-    order_amount: amount,
-    order_currency: "INR",
-
-    customer_details: {
-      customer_id: userId,
-      customer_email: user.email,
-      customer_phone:
-        "9" + Math.floor(100000000 + Math.random() * 900000000),
-    },
-
-    order_meta: {
-      return_url: `https://worksangam.in/payment-success?order_id=${orderId}`,
-    },
-  },
-  {
-    headers: {
-      "x-client-id": process.env.CASHFREE_APP_ID,
-      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-      "x-api-version": "2022-09-01",
-    },
-  }
+const response =
+await axios.post(
+"https://sandbox.cashfree.com/pg/orders",
+{
+order_amount:amount,
+order_currency:"INR",
+order_id:orderId,
+customer_details:{
+customer_id:req.user.id,
+customer_email:req.user.email
+}
+},
+{
+headers:{
+"x-client-id":
+process.env.CASHFREE_APP_ID,
+"x-client-secret":
+process.env.CASHFREE_SECRET_KEY,
+"x-api-version":"2023-08-01"
+}
+}
 );
 
-   res.json({
-
-  payment_session_id:
-      response.data.payment_session_id,
-
-  order_id:
-      response.data.order_id,
+await Payment.create({
+userId:req.user.id,
+orderId,
+amount
 });
 
-  } catch (err) {
-    console.error("🔥 CASHFREE ERROR:", err.response?.data || err.message);
-    res.status(500).json({ msg: "Order creation failed" });
-  }
-};
-
-export const cashfreeWebhook = async (req, res) => {
-  try {
-    console.log("🔥 Cashfree webhook received:", req.body);
-
-    const data = req.body;
-
-    // ✅ FIXED: correct Cashfree structure
-    const orderId = data.data?.order?.order_id;
-    const paymentStatus = data.data?.payment?.payment_status;
-
-    console.log("OrderId:", orderId);
-    console.log("Payment Status:", paymentStatus);
-
-    if (!orderId) return res.sendStatus(400);
-
-    const payment = await Payment.findOne({ orderId });
-    if (!payment) return res.sendStatus(404);
-
-    // prevent duplicate credits
-    if (payment.status === "SUCCESS") return res.sendStatus(200);
-
-    if (paymentStatus === "SUCCESS") {
-
-  payment.status = "SUCCESS";
-
-  await payment.save();
-
-  const user =
-    await User.findById(
-      payment.userId
-    );
-
-  const now = new Date();
-
-  const currentExpiry =
-    user?.subscriptionEnd &&
-    user.subscriptionEnd > now
-      ? user.subscriptionEnd
-      : now;
-
-  const endDate =
-    new Date(currentExpiry);
-
-  endDate.setDate(
-    endDate.getDate() + 30
-  );
-
-  await User.findByIdAndUpdate(
-    payment.userId,
-    {
-      subscriptionPlan:
-        payment.plan,
-
-      subscriptionStart:
-        now,
-
-      subscriptionEnd:
-        endDate,
-    }
-  );
-
-  console.log(
-    `✅ Subscription Activated: ${payment.plan}`
-  );
-} else {
-      payment.status = "FAILED";
-      await payment.save();
-      console.log("❌ Payment failed");
-    }
-
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("🔥 Webhook error:", err);
-    res.sendStatus(500);
-  }
-};
-
-// ✅ GET USER PAYMENT HISTORY
-export const getUserPayments = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const payments = await Payment.find({ userId })
-      .sort({ createdAt: -1 }); // latest first
-
-    res.json({ payments });
-  } catch (err) {
-    console.error("Get payments error:", err);
-    res.status(500).json({ msg: "Server error" });
-  }
-};
-
-
-export const getSubscription = async (req, res) => {
-
-    try {
-
-      const user =
-        await User.findById(
-          req.user.id,
-        ).select(
-          "subscriptionPlan subscriptionStart subscriptionEnd"
-        );
-
-      res.json(user);
-
-    } catch (err) {
-
-      res.status(500).json({
-        msg: "Server error",
-      });
-    }
-  };
-
-
-export const getPaymentStatus = async (req, res) => {
-  try {
-
-    const payment =
-      await Payment.findOne({
-        orderId: req.params.orderId,
-      });
-
-    if (!payment) {
-      return res.status(404).json({
-        msg: "Payment not found",
-      });
-    }
-
-    // Auto mark pending payment as failed after 30 seconds
-if (
-  payment.status === "PENDING" &&
-  Date.now() -
-  new Date(payment.createdAt).getTime()
-  > 30 * 1000
-) {
-
-  payment.status = "FAILED";
-
-  await payment.save();
-}
-
-    res.json({
-      status: payment.status,
-    });
-
-  } catch (err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      msg: "Server error",
-    });
-  }
-};
-
-
-export const verifySubscriptionPayment = async (req, res) => {
-
-  try {
-
-    const {
-      orderId,
-    } = req.body;
-
-    const payment =
-      await Payment.findOne({
-        orderId,
-      });
-
-    if (!payment) {
-      return res.status(404).json({
-        msg: "Payment not found",
-      });
-    }
-
-    return res.json({
-      status: payment.status,
-      plan: payment.plan,
-    });
-
-  } catch (err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      msg: "Server error",
-    });
-  }
+res.json(response.data);
 };
