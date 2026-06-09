@@ -20,12 +20,7 @@ export const createOrder = async (req, res) => {
         link_id: orderId,
         link_amount: amount,
         link_currency: "INR",
-        link_purpose: `${planName} Subscription`,
-
-        link_notify: {
-          send_sms: false,
-          send_email: false
-        }
+        link_purpose: `${planName} Subscription`
       },
       {
         headers: {
@@ -37,6 +32,11 @@ export const createOrder = async (req, res) => {
       }
     );
 
+    console.log(
+      "CASHFREE RESPONSE:",
+      response.data
+    );
+
     await Payment.create({
       userId: req.user.id,
       orderId,
@@ -45,20 +45,20 @@ export const createOrder = async (req, res) => {
     });
 
     res.json({
-      payment_link: response.data.link_url,
+      payment_link:
+        response.data.link_url,
       orderId
     });
 
   } catch (err) {
 
     console.log(
-      "CASHFREE ERROR:",
       err.response?.data || err.message
     );
 
     res.status(500).json({
-      message: "Payment link creation failed",
-      error: err.response?.data || err.message
+      message:
+        "Payment link creation failed"
     });
   }
 };
