@@ -2,7 +2,6 @@ import axios from "axios";
 import Payment from "../models/Payment.js";
 
 export const createOrder = async (req, res) => {
-
   try {
 
     const { planName, amount } = req.body;
@@ -10,16 +9,22 @@ export const createOrder = async (req, res) => {
     const orderId = "WS_" + Date.now();
 
     const response = await axios.post(
-      "https://api.cashfree.com/pg/orders",
+      "https://api.cashfree.com/pg/links",
       {
-        order_amount: amount,
-        order_currency: "INR",
-        order_id: orderId,
-
         customer_details: {
-          customer_id: req.user.id,
+          customer_name: "WorkSangam User",
           customer_email: req.user.email,
           customer_phone: "9999999999"
+        },
+
+        link_id: orderId,
+        link_amount: amount,
+        link_currency: "INR",
+        link_purpose: `${planName} Subscription`,
+
+        link_notify: {
+          send_sms: false,
+          send_email: false
         }
       },
       {
@@ -32,29 +37,28 @@ export const createOrder = async (req, res) => {
       }
     );
 
-    console.log(
-      "CASHFREE RESPONSE:",
-      response.data
-    );
-
     await Payment.create({
       userId: req.user.id,
       orderId,
-      amount
+      amount,
+      planName
     });
 
-    res.json(response.data);
+    res.json({
+      payment_link: response.data.link_url,
+      orderId
+    });
 
-  } catch (error) {
+  } catch (err) {
 
     console.log(
       "CASHFREE ERROR:",
-      error.response?.data || error.message
+      err.response?.data || err.message
     );
 
     res.status(500).json({
-      message: "Cashfree Error",
-      error: error.response?.data || error.message
+      message: "Payment link creation failed",
+      error: err.response?.data || err.message
     });
   }
 };
