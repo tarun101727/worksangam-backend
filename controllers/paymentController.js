@@ -9,28 +9,27 @@ export const createOrder = async (req, res) => {
     const orderId = "WS_" + Date.now();
 
     const response = await axios.post(
-      "https://api.cashfree.com/pg/links",
-      {
-        customer_details: {
-          customer_name: "WorkSangam User",
-          customer_email: req.user.email,
-          customer_phone: "9999999999"
-        },
+  "https://api.cashfree.com/pg/orders",
+  {
+    order_id: orderId,
+    order_amount: amount,
+    order_currency: "INR",
 
-        link_id: orderId,
-        link_amount: amount,
-        link_currency: "INR",
-        link_purpose: `${planName} Subscription`
-      },
-      {
-        headers: {
-          "x-client-id": process.env.CASHFREE_APP_ID,
-          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-          "x-api-version": "2023-08-01",
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    customer_details: {
+      customer_id: req.user.id,
+      customer_email: req.user.email,
+      customer_phone: "9999999999"
+    }
+  },
+  {
+    headers: {
+      "x-client-id": process.env.CASHFREE_APP_ID,
+      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+      "x-api-version": "2023-08-01",
+      "Content-Type": "application/json"
+    }
+  }
+);
 
     console.log(
       "CASHFREE RESPONSE:",
@@ -45,10 +44,12 @@ export const createOrder = async (req, res) => {
     });
 
     res.json({
-      payment_link:
-        response.data.link_url,
-      orderId
-    });
+  payment_session_id:
+    response.data.payment_session_id,
+
+  order_id:
+    response.data.order_id
+});
 
   } catch (err) {
 
