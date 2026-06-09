@@ -2,7 +2,7 @@ import User from "../models/User.js";
 import Subscription from "../models/Subscription.js";
 
 export const getPlans = async(req,res)=>{
- 
+
 res.json([
 {
 plan:"BASIC",
