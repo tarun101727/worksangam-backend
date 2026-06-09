@@ -50,7 +50,7 @@ start.getTime()
 );
 
 user.subscriptionPlan =
-req.body.planName;
+payment.planName;
 
 user.subscriptionStatus =
 "ACTIVE";
@@ -65,7 +65,7 @@ await user.save();
 
 await Subscription.create({
 userId:user._id,
-planName:req.body.planName,
+planName:payment.planName,
 amount:payment.amount,
 startDate:start,
 expiryDate:expiry,
