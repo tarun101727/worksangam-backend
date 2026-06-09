@@ -9,6 +9,11 @@ const paymentSchema = new mongoose.Schema({
 
     orderId:String,
 
+    planName:{
+  type:String,
+  enum:["BASIC","PREMIUM","VIP"]
+},
+
     transactionId:String,
 
     amount:Number,
