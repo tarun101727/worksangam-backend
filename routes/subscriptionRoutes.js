@@ -39,7 +39,6 @@ mySubscription
 
 router.get(
 "/verify/:orderId",
-authMiddleware,
 verifySubscriptionPayment
 );
 
