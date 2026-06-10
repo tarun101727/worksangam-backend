@@ -1,6 +1,9 @@
 import { Cashfree } from "cashfree-pg";
 import User from "../models/User.js";
 
+console.log("CASHFREE =", Cashfree);
+console.log("METHODS =", Object.keys(Cashfree));
+
 Cashfree.XClientId =
   process.env.CASHFREE_APP_ID;
 
