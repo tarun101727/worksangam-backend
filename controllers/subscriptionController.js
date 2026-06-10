@@ -102,16 +102,6 @@ async (req, res) => {
 
     console.log("REQUEST =", request);
 
-const response =
-  await Cashfree.PGCreateOrder(
-    request
-  );
-
-console.log(
-  "CREATE ORDER RESPONSE =",
-  response?.data
-);
-
 console.log(
   "CASHFREE FULL OBJECT =>",
   Cashfree
@@ -127,6 +117,12 @@ console.log(
   Object.getOwnPropertyNames(Cashfree)
 );
 
+const response =
+  await Cashfree.PGCreateOrder(
+    request
+  );
+
+  
     res.json({
 
       orderId,
