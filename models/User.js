@@ -130,19 +130,13 @@ welcomeBonusClaimed: {
 },
 
 subscriptionPlan:{
-   type:String,
-   enum:["FREE","BASIC","PREMIUM","VIP"],
-   default:"FREE"
+ type:String,
+ default:"FREE"
 },
 
-subscriptionStatus:{
-   type:String,
-   default:"INACTIVE"
+subscriptionExpiry:{
+ type:Date
 },
-
-subscriptionStartDate:Date,
-
-subscriptionExpiryDate:Date,
 
 
   createdAt: { type: Date, default: Date.now },
