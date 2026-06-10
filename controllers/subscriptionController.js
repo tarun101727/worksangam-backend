@@ -1,9 +1,4 @@
-import * as CashfreeSDK from "cashfree-pg";
-
-console.log(
-  "FULL SDK =",
-  CashfreeSDK
-);
+import { Cashfree, CFEnvironment } from "cashfree-pg";
 
 import User from "../models/User.js";
 
