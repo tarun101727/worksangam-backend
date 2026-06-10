@@ -1,4 +1,10 @@
-import { Cashfree, CFEnvironment } from "cashfree-pg";
+import * as CashfreeSDK from "cashfree-pg";
+
+console.log(
+  "FULL SDK =",
+  CashfreeSDK
+);
+
 import User from "../models/User.js";
 
 console.log("CASHFREE =", Cashfree);
@@ -122,7 +128,7 @@ const response =
     request
   );
 
-  
+
     res.json({
 
       orderId,
