@@ -129,17 +129,25 @@ welcomeBonusClaimed: {
   default: false
 },
 
-subscriptionPlan:{
- type:String,
- default:"FREE"
-},
-
-subscriptionExpiry:{
- type:Date
-},
-
-phone: {
+subscriptionPlan: {
   type: String,
+  enum: ["none", "silver", "gold", "platinum"],
+  default: "none",
+},
+
+subscriptionStatus: {
+  type: String,
+  enum: ["inactive", "active", "expired"],
+  default: "inactive",
+},
+
+subscriptionStart: {
+  type: Date,
+  default: null,
+},
+
+subscriptionEnd: {
+  type: Date,
   default: null,
 },
 
