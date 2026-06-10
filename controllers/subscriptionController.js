@@ -1,15 +1,5 @@
-import { Cashfree, CFEnvironment } from "cashfree-pg";
-
+import { Cashfree } from "cashfree-pg";
 import User from "../models/User.js";
-
-console.log("CASHFREE =", Cashfree);
-
-if (Cashfree) {
-  console.log(
-    "CASHFREE METHODS =",
-    Object.getOwnPropertyNames(Cashfree)
-  );
-}
 
 Cashfree.XClientId =
   process.env.CASHFREE_APP_ID;
@@ -18,18 +8,7 @@ Cashfree.XClientSecret =
   process.env.CASHFREE_SECRET_KEY;
 
 Cashfree.XEnvironment =
-  CFEnvironment.PRODUCTION;
-
-
-  console.log(
-  "Cashfree Object =",
-  Cashfree
-);
-
-console.log(
-  "Cashfree Keys =",
-  Object.keys(Cashfree)
-);
+  process.env.CASHFREE_ENV;
 
 export const createSubscriptionOrder =
 async (req, res) => {
@@ -101,28 +80,10 @@ async (req, res) => {
       },
     };
 
-    console.log("REQUEST =", request);
-
-console.log(
-  "CASHFREE FULL OBJECT =>",
-  Cashfree
-);
-
-console.log(
-  "CASHFREE KEYS =>",
-  Object.keys(Cashfree)
-);
-
-console.log(
-  "CASHFREE PROPERTY NAMES =>",
-  Object.getOwnPropertyNames(Cashfree)
-);
-
-const response =
-  await Cashfree.PGCreateOrder(
-    request
-  );
-
+    const response =
+      await Cashfree.PGCreateOrder(
+        request
+      );
 
     res.json({
 
@@ -135,28 +96,13 @@ const response =
 
   } catch (err) {
 
-  console.log(
-    "CASHFREE ERROR =>",
-    err
-  );
+    console.error(err);
 
-  console.log(
-    "CASHFREE RESPONSE =>",
-    err?.response?.data
-  );
-
-  res.status(500).json({
-
-    msg: "Server Error",
-
-    error: err?.message,
-
-    cashfree:
-      err?.response?.data,
-  });
-}
+    res.status(500).json({
+      msg: "Server Error",
+    });
+  }
 };
-
 
 export const verifySubscription =
 async (req, res) => {
@@ -218,24 +164,10 @@ async (req, res) => {
 
   } catch (err) {
 
-  console.log(
-    "CASHFREE ERROR =>",
-    err
-  );
+    console.error(err);
 
-  console.log(
-    "CASHFREE RESPONSE =>",
-    err?.response?.data
-  );
-
-  res.status(500).json({
-
-    msg: "Server Error",
-
-    error: err?.message,
-
-    cashfree:
-      err?.response?.data,
-  });
-}
+    res.status(500).json({
+      msg: "Server Error",
+    });
+  }
 };
