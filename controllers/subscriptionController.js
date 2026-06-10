@@ -96,12 +96,26 @@ async (req, res) => {
 
   } catch (err) {
 
-    console.error(err);
+  console.log(
+    "CASHFREE ERROR =>",
+    err
+  );
 
-    res.status(500).json({
-      msg: "Server Error",
-    });
-  }
+  console.log(
+    "CASHFREE RESPONSE =>",
+    err?.response?.data
+  );
+
+  res.status(500).json({
+
+    msg: "Server Error",
+
+    error: err?.message,
+
+    cashfree:
+      err?.response?.data,
+  });
+}
 };
 
 
@@ -165,10 +179,24 @@ async (req, res) => {
 
   } catch (err) {
 
-    console.error(err);
+  console.log(
+    "CASHFREE ERROR =>",
+    err
+  );
 
-    res.status(500).json({
-      msg: "Server Error",
-    });
-  }
+  console.log(
+    "CASHFREE RESPONSE =>",
+    err?.response?.data
+  );
+
+  res.status(500).json({
+
+    msg: "Server Error",
+
+    error: err?.message,
+
+    cashfree:
+      err?.response?.data,
+  });
+}
 };
