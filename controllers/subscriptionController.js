@@ -112,6 +112,21 @@ console.log(
   response?.data
 );
 
+console.log(
+  "CASHFREE FULL OBJECT =>",
+  Cashfree
+);
+
+console.log(
+  "CASHFREE KEYS =>",
+  Object.keys(Cashfree)
+);
+
+console.log(
+  "CASHFREE PROPERTY NAMES =>",
+  Object.getOwnPropertyNames(Cashfree)
+);
+
     res.json({
 
       orderId,
