@@ -59,6 +59,10 @@ export const createOrder = async (req, res) => {
   }
 );
 
+
+console.log("CASHFREE RESPONSE");
+console.log(response.data);
+
    res.json({
 
   payment_session_id:
