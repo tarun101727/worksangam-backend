@@ -1,6 +1,5 @@
-import User from "../models/User.js";
-
 import pkg from "cashfree-pg";
+import User from "../models/User.js";
 
 const { Cashfree } = pkg;
 
@@ -86,10 +85,17 @@ async (req, res) => {
       },
     };
 
-    const response =
-      await Cashfree.PGCreateOrder(
-        request
-      );
+    console.log("REQUEST =", request);
+
+const response =
+  await Cashfree.PGCreateOrder(
+    request
+  );
+
+console.log(
+  "CREATE ORDER RESPONSE =",
+  response?.data
+);
 
     res.json({
 
