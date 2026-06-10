@@ -7,7 +7,8 @@ import {
 getPlans,
 createSubscription,
 subscriptionWebhook,
-mySubscription
+mySubscription,
+verifySubscriptionPayment
 }
 from "../controllers/subscriptionController.js";
 
@@ -34,6 +35,12 @@ router.get(
 "/my-subscription",
 authMiddleware,
 mySubscription
+);
+
+router.get(
+"/verify/:orderId",
+authMiddleware,
+verifySubscriptionPayment
 );
 
 export default router;
