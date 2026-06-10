@@ -247,3 +247,32 @@ createdAt:-1
 
 res.json(subscription);
 };
+
+
+
+export const verifySubscriptionPayment = async (req,res)=>{
+
+try{
+
+const {orderId} = req.params;
+
+const response = await axios.get(
+`https://api.cashfree.com/pg/orders/${orderId}`,
+{
+headers:{
+"x-client-id":process.env.CASHFREE_APP_ID,
+"x-client-secret":process.env.CASHFREE_SECRET_KEY,
+"x-api-version":"2023-08-01"
+}
+}
+);
+
+res.json(response.data);
+
+}catch(err){
+
+res.status(500).json({
+msg:"Verification failed"
+});
+}
+};
