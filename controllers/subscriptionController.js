@@ -1,18 +1,8 @@
 import pkg from "cashfree-pg";
 import User from "../models/User.js";
 
-console.log("FULL CASHFREE PACKAGE =", pkg);
-
-const { Cashfree } = pkg;
-
-console.log("CASHFREE =", Cashfree);
-
-if (Cashfree) {
-  console.log(
-    "CASHFREE METHODS =",
-    Object.getOwnPropertyNames(Cashfree)
-  );
-}
+console.log("PKG =", pkg);
+console.log("PKG KEYS =", Object.keys(pkg));
 
 Cashfree.XClientId =
   process.env.CASHFREE_APP_ID;
