@@ -1,9 +1,5 @@
-import pkg from "cashfree-pg";
+import { Cashfree, CFEnvironment } from "cashfree-pg";
 import User from "../models/User.js";
-
-console.log("FULL CASHFREE PACKAGE =", pkg);
-
-const { Cashfree } = pkg;
 
 console.log("CASHFREE =", Cashfree);
 
@@ -21,7 +17,18 @@ Cashfree.XClientSecret =
   process.env.CASHFREE_SECRET_KEY;
 
 Cashfree.XEnvironment =
-  process.env.CASHFREE_ENV;
+  CFEnvironment.PRODUCTION;
+
+
+  console.log(
+  "Cashfree Object =",
+  Cashfree
+);
+
+console.log(
+  "Cashfree Keys =",
+  Object.keys(Cashfree)
+);
 
 export const createSubscriptionOrder =
 async (req, res) => {
