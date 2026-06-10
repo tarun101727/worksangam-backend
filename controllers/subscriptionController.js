@@ -260,9 +260,11 @@ const response = await axios.get(
 `https://api.cashfree.com/pg/orders/${orderId}`,
 {
 headers:{
+accept: "application/json",
+"Content-Type": "application/json",
+"x-api-version":"2023-08-01",
 "x-client-id":process.env.CASHFREE_APP_ID,
-"x-client-secret":process.env.CASHFREE_SECRET_KEY,
-"x-api-version":"2023-08-01"
+"x-client-secret":process.env.CASHFREE_SECRET_KEY
 }
 }
 );
