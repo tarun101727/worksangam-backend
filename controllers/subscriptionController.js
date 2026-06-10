@@ -1,5 +1,8 @@
-import { Cashfree } from "cashfree-pg";
 import User from "../models/User.js";
+
+import pkg from "cashfree-pg";
+
+const { Cashfree } = pkg;
 
 console.log("CASHFREE =", Cashfree);
 console.log("METHODS =", Object.keys(Cashfree));
