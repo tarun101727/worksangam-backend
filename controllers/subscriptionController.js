@@ -7,8 +7,12 @@ Cashfree.XClientId =
 Cashfree.XClientSecret =
   process.env.CASHFREE_SECRET_KEY;
 
+/*
+SET ENVIRONMENT
+*/
+
 Cashfree.XEnvironment =
-  process.env.CASHFREE_ENV;
+  Cashfree.Environment.PRODUCTION;
 
 export const createSubscriptionOrder =
 async (req, res) => {
@@ -84,6 +88,20 @@ async (req, res) => {
       await Cashfree.PGCreateOrder(
         request
       );
+    console.log(
+  "APP ID =>",
+  process.env.CASHFREE_APP_ID
+);
+
+console.log(
+  "SECRET EXISTS =>",
+  !!process.env.CASHFREE_SECRET_KEY
+);
+
+console.log(
+  "REQUEST =>",
+  request
+);
 
     res.json({
 
@@ -96,12 +114,27 @@ async (req, res) => {
 
   } catch (err) {
 
-    console.error(err);
+  console.error(
+    "CASHFREE ERROR =>",
+    err
+  );
 
-    res.status(500).json({
-      msg: "Server Error",
-    });
-  }
+  console.error(
+    "CASHFREE RESPONSE =>",
+    err.response?.data
+  );
+
+  res.status(500).json({
+
+    msg: "Server Error",
+
+    error:
+      err.message,
+
+    cashfree:
+      err.response?.data,
+  });
+}
 };
 
 export const verifySubscription =
@@ -164,10 +197,25 @@ async (req, res) => {
 
   } catch (err) {
 
-    console.error(err);
+  console.error(
+    "CASHFREE ERROR =>",
+    err
+  );
 
-    res.status(500).json({
-      msg: "Server Error",
-    });
-  }
+  console.error(
+    "CASHFREE RESPONSE =>",
+    err.response?.data
+  );
+
+  res.status(500).json({
+
+    msg: "Server Error",
+
+    error:
+      err.message,
+
+    cashfree:
+      err.response?.data,
+  });
+}
 };
