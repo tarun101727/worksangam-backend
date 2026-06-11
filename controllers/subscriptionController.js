@@ -69,22 +69,35 @@ async (req, res) => {
       `SUB_${Date.now()}`;
 
     const request = {
-  order_amount: amount,
-  order_currency: "INR",
-  order_id: orderId,
-  customer_details: {
-    customer_id: user._id.toString(),
-    customer_email: user.email,
-    customer_phone: "9999999999",
-  },
-  order_meta: {
-    return_url: "https://worksangam.in",
-  },
-};
 
-console.log(
-  "REQUEST =>",
-  request
+      order_amount: amount,
+
+      order_currency: "INR",
+
+      order_id: orderId,
+
+      customer_details: {
+
+        customer_id:
+          user._id.toString(),
+
+        customer_email:
+          user.email,
+
+        customer_phone:
+          "9999999999",
+      },
+
+      order_meta: {
+
+        return_url:
+          "https://worksangam.in",
+      },
+    };
+
+    console.log(
+  "CASHFREE MODULE KEYS =>",
+  Object.keys(cashfreeModule)
 );
 
 const response =
