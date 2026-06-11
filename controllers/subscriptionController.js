@@ -1,27 +1,19 @@
 import User from "../models/User.js";
-import User from "../models/User.js";
+import * as cashfreeModule from "cashfree-pg";
 
-import {
-  Cashfree,
-  CFEnvironment,
-} from "cashfree-pg";
-
-
-Cashfree.XClientId =
-  process.env.CASHFREE_APP_ID;
-
-Cashfree.XClientSecret =
-  process.env.CASHFREE_SECRET_KEY;
-
-Cashfree.XEnvironment =
-  process.env.CASHFREE_ENV === "PRODUCTION"
-    ? CFEnvironment.PRODUCTION
-    : CFEnvironment.SANDBOX;
+const { Cashfree } = cashfreeModule;
 
 console.log(
-  "Cashfree Object =>",
-  Cashfree
+  "CASHFREE MODULE KEYS =>",
+  Object.keys(cashfreeModule)
 );
+
+console.log(
+  "CASHFREE STATIC KEYS =>",
+  Object.keys(Cashfree)
+);
+
+
 
 /*
 CREATE ORDER
@@ -99,23 +91,17 @@ async (req, res) => {
       },
     };
 
-  const response =
-  await Cashfree.PGCreateOrder(
-    request
-  );
-
-console.log(
-  "ORDER RESPONSE =>",
-  response
+    console.log(
+  "CASHFREE MODULE KEYS =>",
+  Object.keys(cashfreeModule)
 );
 
-return res.json({
+return res.status(200).json({
 
-  orderId,
-
-  paymentSessionId:
-    response.data
-      .payment_session_id,
+  cashfreeKeys:
+    Object.keys(
+      Cashfree
+    ),
 });
 
   } catch (err) {
