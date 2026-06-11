@@ -7,6 +7,9 @@ Cashfree.XClientId =
 Cashfree.XClientSecret =
   process.env.CASHFREE_SECRET_KEY;
 
+Cashfree.XEnvironment =
+  process.env.CASHFREE_ENV;
+
 export const createSubscriptionOrder =
 async (req, res) => {
 
@@ -77,34 +80,10 @@ async (req, res) => {
       },
     };
 
-    console.log(
-  "AVAILABLE METHODS =>",
-  Object.keys(Cashfree)
-);
-
-console.log(
-  "CASHFREE OBJECT =>",
-  Cashfree
-);
-
-const response =
-  await Cashfree.PGCreateOrder(
-    request
-  );
-    console.log(
-  "APP ID =>",
-  process.env.CASHFREE_APP_ID
-);
-
-console.log(
-  "SECRET EXISTS =>",
-  !!process.env.CASHFREE_SECRET_KEY
-);
-
-console.log(
-  "REQUEST =>",
-  request
-);
+    const response =
+      await Cashfree.PGCreateOrder(
+        request
+      );
 
     res.json({
 
@@ -117,108 +96,10 @@ console.log(
 
   } catch (err) {
 
-  console.error(
-    "CASHFREE ERROR =>",
-    err
-  );
+    console.error(err);
 
-  console.error(
-    "CASHFREE RESPONSE =>",
-    err.response?.data
-  );
-
-  res.status(500).json({
-
-    msg: "Server Error",
-
-    error:
-      err.message,
-
-    cashfree:
-      err.response?.data,
-  });
-}
-};
-
-export const verifySubscription =
-async (req, res) => {
-
-  try {
-
-    const { orderId, plan } =
-      req.body;
-
-    const response =
-      await Cashfree.PGFetchOrder(
-        orderId
-      );
-
-    if (
-      response.data.order_status
-      !== "PAID"
-    ) {
-
-      return res.status(400).json({
-        msg: "Payment not completed",
-      });
-    }
-
-    const user =
-      await User.findById(
-        req.user.id
-      );
-
-    let months = 1;
-
-    const startDate =
-      new Date();
-
-    const endDate =
-      new Date();
-
-    endDate.setMonth(
-      endDate.getMonth() + months
-    );
-
-    user.subscriptionPlan =
-      plan;
-
-    user.subscriptionStatus =
-      "active";
-
-    user.subscriptionStart =
-      startDate;
-
-    user.subscriptionEnd =
-      endDate;
-
-    await user.save();
-
-    res.json({
-      msg: "Subscription Activated",
+    res.status(500).json({
+      msg: "Server Error",
     });
-
-  } catch (err) {
-
-  console.error(
-    "CASHFREE ERROR =>",
-    err
-  );
-
-  console.error(
-    "CASHFREE RESPONSE =>",
-    err.response?.data
-  );
-
-  res.status(500).json({
-
-    msg: "Server Error",
-
-    error:
-      err.message,
-
-    cashfree:
-      err.response?.data,
-  });
-}
+  }
 };
