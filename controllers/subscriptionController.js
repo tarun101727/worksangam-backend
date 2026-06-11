@@ -1,5 +1,5 @@
-import { Cashfree } from "cashfree-pg";
 import User from "../models/User.js";
+import { Cashfree } from "cashfree-pg";
 
 Cashfree.XClientId =
   process.env.CASHFREE_APP_ID;
@@ -8,7 +8,11 @@ Cashfree.XClientSecret =
   process.env.CASHFREE_SECRET_KEY;
 
 Cashfree.XEnvironment =
-  process.env.CASHFREE_ENV;
+  process.env.CASHFREE_ENV === "PRODUCTION"
+    ? Cashfree.Environment.PRODUCTION
+    : Cashfree.Environment.SANDBOX;
+
+
 
 export const createSubscriptionOrder =
 async (req, res) => {
@@ -21,6 +25,7 @@ async (req, res) => {
       );
 
     if (!user) {
+
       return res.status(404).json({
         msg: "User not found",
       });
@@ -45,6 +50,7 @@ async (req, res) => {
         break;
 
       default:
+
         return res.status(400).json({
           msg: "Invalid plan",
         });
@@ -76,16 +82,19 @@ async (req, res) => {
       order_meta: {
 
         return_url:
-          "https://worksangam.in",
+          `https://worksangam.in/payment-success?order_id={order_id}`,
       },
     };
 
     const response =
       await Cashfree.PGCreateOrder(
+        "2023-08-01",
         request
       );
 
-    res.json({
+    return res.json({
+
+      success: true,
 
       orderId,
 
@@ -96,10 +105,17 @@ async (req, res) => {
 
   } catch (err) {
 
-    console.error(err);
+    console.error(
+      "CREATE ORDER ERROR =>",
+      err.response?.data || err
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
+
       msg: "Server Error",
+
+      error:
+        err.response?.data || err.message,
     });
   }
 };
@@ -110,21 +126,25 @@ async (req, res) => {
 
   try {
 
-    const { orderId, plan } =
-      req.body;
+    const {
+      orderId,
+      plan,
+    } = req.body;
 
     const response =
       await Cashfree.PGFetchOrder(
+        "2023-08-01",
         orderId
       );
 
     if (
-      response.data.order_status
-      !== "PAID"
+      response.data.order_status !==
+      "PAID"
     ) {
 
       return res.status(400).json({
-        msg: "Payment not completed",
+        msg:
+          "Payment not completed",
       });
     }
 
@@ -133,7 +153,13 @@ async (req, res) => {
         req.user.id
       );
 
-    let months = 1;
+    if (!user) {
+
+      return res.status(404).json({
+        msg:
+          "User not found",
+      });
+    }
 
     const startDate =
       new Date();
@@ -142,7 +168,7 @@ async (req, res) => {
       new Date();
 
     endDate.setMonth(
-      endDate.getMonth() + months
+      endDate.getMonth() + 1
     );
 
     user.subscriptionPlan =
@@ -159,16 +185,28 @@ async (req, res) => {
 
     await user.save();
 
-    res.json({
-      msg: "Subscription Activated",
+    return res.json({
+
+      success: true,
+
+      msg:
+        "Subscription Activated",
     });
 
   } catch (err) {
 
-    console.error(err);
+    console.error(
+      "VERIFY ERROR =>",
+      err.response?.data || err
+    );
 
-    res.status(500).json({
-      msg: "Server Error",
+    return res.status(500).json({
+
+      msg:
+        "Server Error",
+
+      error:
+        err.response?.data || err.message,
     });
   }
 };
