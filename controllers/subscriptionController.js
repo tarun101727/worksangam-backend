@@ -1,5 +1,6 @@
+import { Cashfree, CFEnvironment } from "cashfree-pg";
+
 import User from "../models/User.js";
-import { Cashfree } from "cashfree-pg";
 
 Cashfree.XClientId =
   process.env.CASHFREE_APP_ID;
@@ -9,10 +10,12 @@ Cashfree.XClientSecret =
 
 Cashfree.XEnvironment =
   process.env.CASHFREE_ENV === "PRODUCTION"
-    ? Cashfree.Environment.PRODUCTION
-    : Cashfree.Environment.SANDBOX;
+    ? CFEnvironment.PRODUCTION
+    : CFEnvironment.SANDBOX;
 
-
+/*
+CREATE ORDER
+*/
 
 export const createSubscriptionOrder =
 async (req, res) => {
@@ -82,32 +85,33 @@ async (req, res) => {
       order_meta: {
 
         return_url:
-          `https://worksangam.in/payment-success?order_id={order_id}`,
+          "https://worksangam.in",
       },
     };
 
     const response =
       await Cashfree.PGCreateOrder(
-        "2023-08-01",
         request
       );
 
-    return res.json({
+    console.log(
+      "CASHFREE RESPONSE =>",
+      response.data,
+    );
 
-      success: true,
+    return res.json({
 
       orderId,
 
       paymentSessionId:
-        response.data
-          .payment_session_id,
+        response.data.payment_session_id,
     });
 
   } catch (err) {
 
     console.error(
       "CREATE ORDER ERROR =>",
-      err.response?.data || err
+      err.response?.data || err,
     );
 
     return res.status(500).json({
@@ -115,11 +119,15 @@ async (req, res) => {
       msg: "Server Error",
 
       error:
-        err.response?.data || err.message,
+        err.response?.data ||
+        err.message,
     });
   }
 };
 
+/*
+VERIFY PAYMENT
+*/
 
 export const verifySubscription =
 async (req, res) => {
@@ -133,9 +141,13 @@ async (req, res) => {
 
     const response =
       await Cashfree.PGFetchOrder(
-        "2023-08-01",
         orderId
       );
+
+    console.log(
+      "VERIFY RESPONSE =>",
+      response.data,
+    );
 
     if (
       response.data.order_status !==
@@ -143,6 +155,7 @@ async (req, res) => {
     ) {
 
       return res.status(400).json({
+
         msg:
           "Payment not completed",
       });
@@ -156,8 +169,7 @@ async (req, res) => {
     if (!user) {
 
       return res.status(404).json({
-        msg:
-          "User not found",
+        msg: "User not found",
       });
     }
 
@@ -187,26 +199,27 @@ async (req, res) => {
 
     return res.json({
 
-      success: true,
-
       msg:
         "Subscription Activated",
+
+      subscriptionEnd:
+        user.subscriptionEnd,
     });
 
   } catch (err) {
 
     console.error(
       "VERIFY ERROR =>",
-      err.response?.data || err
+      err.response?.data || err,
     );
 
     return res.status(500).json({
 
-      msg:
-        "Server Error",
+      msg: "Server Error",
 
       error:
-        err.response?.data || err.message,
+        err.response?.data ||
+        err.message,
     });
   }
 };
