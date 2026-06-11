@@ -23,16 +23,6 @@ console.log(
   Cashfree
 );
 
-
-console.log(
-  "CASHFREE MODULE KEYS =>",
-  Object.keys(cashfreeModule)
-);
-
-console.log(
-  "CASHFREE MODULE =>",
-  cashfreeModule
-);
 /*
 CREATE ORDER
 */
