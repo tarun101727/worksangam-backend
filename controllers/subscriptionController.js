@@ -1,4 +1,3 @@
-
 import User from "../models/User.js";
 import * as cashfreeModule from "cashfree-pg";
 
@@ -87,23 +86,18 @@ async (req, res) => {
       },
     };
 
-    const response =
-      await Cashfree.PGCreateOrder(
-        request
-      );
-
     console.log(
-      "CASHFREE RESPONSE =>",
-      response.data,
-    );
+  "CASHFREE MODULE KEYS =>",
+  Object.keys(cashfreeModule)
+);
 
-    return res.json({
+return res.status(200).json({
 
-      orderId,
-
-      paymentSessionId:
-        response.data.payment_session_id,
-    });
+  cashfreeKeys:
+    Object.keys(
+      cashfreeModule
+    ),
+});
 
   } catch (err) {
 
@@ -137,10 +131,9 @@ async (req, res) => {
       plan,
     } = req.body;
 
-    const response =
-      await Cashfree.PGFetchOrder(
-        orderId
-      );
+    return res.json({
+  msg: "verify route reached"
+});
 
     console.log(
       "VERIFY RESPONSE =>",
