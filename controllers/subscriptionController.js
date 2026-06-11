@@ -7,13 +7,6 @@ Cashfree.XClientId =
 Cashfree.XClientSecret =
   process.env.CASHFREE_SECRET_KEY;
 
-/*
-SET ENVIRONMENT
-*/
-
-Cashfree.XEnvironment =
-  Cashfree.Environment.PRODUCTION;
-
 export const createSubscriptionOrder =
 async (req, res) => {
 
