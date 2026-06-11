@@ -1,18 +1,16 @@
-import { Cashfree, CFEnvironment } from "cashfree-pg";
 
 import User from "../models/User.js";
+import * as cashfreeModule from "cashfree-pg";
 
-Cashfree.XClientId =
-  process.env.CASHFREE_APP_ID;
+console.log(
+  "CASHFREE MODULE KEYS =>",
+  Object.keys(cashfreeModule)
+);
 
-Cashfree.XClientSecret =
-  process.env.CASHFREE_SECRET_KEY;
-
-Cashfree.XEnvironment =
-  process.env.CASHFREE_ENV === "PRODUCTION"
-    ? CFEnvironment.PRODUCTION
-    : CFEnvironment.SANDBOX;
-
+console.log(
+  "CASHFREE MODULE =>",
+  cashfreeModule
+);
 /*
 CREATE ORDER
 */
