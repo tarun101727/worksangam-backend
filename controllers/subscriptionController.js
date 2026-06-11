@@ -103,3 +103,72 @@ async (req, res) => {
     });
   }
 };
+
+
+export const verifySubscription =
+async (req, res) => {
+
+  try {
+
+    const { orderId, plan } =
+      req.body;
+
+    const response =
+      await Cashfree.PGFetchOrder(
+        orderId
+      );
+
+    if (
+      response.data.order_status
+      !== "PAID"
+    ) {
+
+      return res.status(400).json({
+        msg: "Payment not completed",
+      });
+    }
+
+    const user =
+      await User.findById(
+        req.user.id
+      );
+
+    let months = 1;
+
+    const startDate =
+      new Date();
+
+    const endDate =
+      new Date();
+
+    endDate.setMonth(
+      endDate.getMonth() + months
+    );
+
+    user.subscriptionPlan =
+      plan;
+
+    user.subscriptionStatus =
+      "active";
+
+    user.subscriptionStart =
+      startDate;
+
+    user.subscriptionEnd =
+      endDate;
+
+    await user.save();
+
+    res.json({
+      msg: "Subscription Activated",
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server Error",
+    });
+  }
+};
