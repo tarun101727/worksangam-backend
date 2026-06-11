@@ -1,26 +1,23 @@
 import User from "../models/User.js";
-import * as cashfreeModule from "cashfree-pg";
-
-const { Cashfree } = cashfreeModule;
-
-console.log(
-  "CASHFREE MODULE KEYS =>",
-  Object.keys(cashfreeModule)
-);
-
-console.log(
-  "CASHFREE =>",
-  Cashfree
-);
-
-console.log(
-  "PROTOTYPE KEYS =>",
-  Object.getOwnPropertyNames(
-    Cashfree.prototype || {}
-  )
-);
+import {
+  Cashfree,
+  CFEnvironment,
+} from "cashfree-pg";
 
 
+Cashfree.XClientId =
+  process.env.CASHFREE_APP_ID;
+
+Cashfree.XClientSecret =
+  process.env.CASHFREE_SECRET_KEY;
+
+Cashfree.XEnvironment =
+  process.env.CASHFREE_ENV === "PRODUCTION"
+    ? CFEnvironment.PRODUCTION
+    : CFEnvironment.SANDBOX;
+
+const cashfree =
+  new Cashfree();
 
 /*
 CREATE ORDER
@@ -103,12 +100,23 @@ async (req, res) => {
   Object.keys(cashfreeModule)
 );
 
-return res.status(200).json({
+const response =
+  await cashfree.PGCreateOrder(
+    request
+  );
 
-  prototypeKeys:
-    Object.getOwnPropertyNames(
-      Cashfree.prototype || {}
-    ),
+console.log(
+  "ORDER RESPONSE =>",
+  response.data
+);
+
+return res.json({
+
+  orderId,
+
+  paymentSessionId:
+    response.data
+      .payment_session_id,
 });
 
   } catch (err) {
@@ -143,9 +151,10 @@ async (req, res) => {
       plan,
     } = req.body;
 
-    return res.json({
-  msg: "verify route reached"
-});
+  const response =
+  await cashfree.PGFetchOrder(
+    orderId
+  );
 
     console.log(
       "VERIFY RESPONSE =>",
