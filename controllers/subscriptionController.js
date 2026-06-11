@@ -77,10 +77,20 @@ async (req, res) => {
       },
     };
 
-    const response =
-      await Cashfree.PGCreateOrder(
-        request
-      );
+    console.log(
+  "AVAILABLE METHODS =>",
+  Object.keys(Cashfree)
+);
+
+console.log(
+  "CASHFREE OBJECT =>",
+  Cashfree
+);
+
+const response =
+  await Cashfree.PGCreateOrder(
+    request
+  );
     console.log(
   "APP ID =>",
   process.env.CASHFREE_APP_ID
