@@ -9,8 +9,15 @@ console.log(
 );
 
 console.log(
-  "CASHFREE STATIC KEYS =>",
-  Object.keys(Cashfree)
+  "CASHFREE =>",
+  Cashfree
+);
+
+console.log(
+  "PROTOTYPE KEYS =>",
+  Object.getOwnPropertyNames(
+    Cashfree.prototype || {}
+  )
 );
 
 
@@ -98,9 +105,9 @@ async (req, res) => {
 
 return res.status(200).json({
 
-  cashfreeKeys:
-    Object.keys(
-      Cashfree
+  prototypeKeys:
+    Object.getOwnPropertyNames(
+      Cashfree.prototype || {}
     ),
 });
 
