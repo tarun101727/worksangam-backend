@@ -19,8 +19,6 @@ import onlineWorkerRoutes from "./routes/onlineWorkerRoutes.js"
 import languageRoutes from "./routes/languageRoutes.js";
 import pushRoutes from './routes/pushRoutes.js';
 import paymentRoutes from "./routes/paymentRoutes.js";
-import subscriptionRoutes
-from "./routes/subscriptionRoutes.js";
 
 
 
@@ -80,10 +78,6 @@ app.use("/api/online-workers" , onlineWorkerRoutes)
 app.use("/api/languages", languageRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/push', pushRoutes); 
-app.use(
-"/api/subscription",
-subscriptionRoutes
-);
 
 
 
