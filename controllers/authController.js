@@ -1244,94 +1244,66 @@ export const toggleAvailability = async (req, res) => {
 
 export const rateEmployee = async (req, res) => {
   try {
-
-    console.log("RATE REQUEST BODY =>", req.body);
-    console.log("REQ USER =>", req.user);
-
     const hirerId = req.user.id;
-
     const hirer = await User.findById(hirerId);
 
-    if (!hirer) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
+    if (!hirer) return res.status(404).json({ msg: "User not found" });
+
+    // ✅ Prevent guests from rating
+    if (hirer.isGuest) {
+      return res.status(403).json({ msg: "Guests cannot rate employees" });
     }
 
     const { employeeId, rating } = req.body;
+    if (!employeeId || rating == null) {
+      return res.status(400).json({ msg: "Employee and rating required" });
+    }
 
-    console.log("EMPLOYEE ID =>", employeeId);
-    console.log("RATING =>", rating);
-    console.log("RATING TYPE =>", typeof rating);
+    if (rating < 0.5 || rating > 5) {
+      return res.status(400).json({ msg: "Rating must be between 0.5 and 5" });
+    }
+
+    if (Math.round(rating * 2) / 2 !== rating) {
+      return res.status(400).json({ msg: "Rating must be in 0.5 steps" });
+    }
 
     const employee = await User.findById(employeeId);
 
-    console.log("EMPLOYEE FOUND =>", !!employee);
-
-    if (!employee) {
-      return res.status(404).json({
-        msg: "Employee not found",
-      });
+    if (!employee || employee.role !== "employee") {
+      return res.status(404).json({ msg: "Employee not found" });
     }
 
-    console.log("EMPLOYEE ROLE =>", employee.role);
-    console.log("RATINGS ARRAY =>", employee.ratings);
-
     const existingRating = employee.ratings.find(
-      (r) =>
-        r.hirer &&
-        r.hirer.toString() === hirerId
+      r => r.hirer.toString() === hirerId
     );
 
     if (existingRating) {
-
-      existingRating.value = Number(rating);
-
+      existingRating.value = rating;
     } else {
-
-      employee.ratings.push({
-        hirer: hirerId,
-        value: Number(rating),
-      });
+      employee.ratings.push({ hirer: hirerId, value: rating });
     }
 
-    const total = employee.ratings.reduce(
-      (sum, r) => sum + Number(r.value),
-      0
-    );
-
-    employee.ratingCount =
-      employee.ratings.length;
-
-    employee.ratingAverage =
-      Number(
-        (
-          total /
-          employee.ratingCount
-        ).toFixed(1)
-      );
+    // Recalculate average
+    const total = employee.ratings.reduce((sum, r) => sum + r.value, 0);
+    employee.ratingCount = employee.ratings.length;
+    employee.ratingAverage = Number((total / employee.ratingCount).toFixed(1));
 
     await employee.save();
 
+    io.to(`profile-${employeeId}`).emit("employee-rating-updated", {
+      employeeId: employee._id,
+      ratingAverage: employee.ratingAverage,
+      ratingCount: employee.ratingCount,
+    });
+
     res.json({
       msg: "Rating saved",
-      ratingAverage:
-        employee.ratingAverage,
-      ratingCount:
-        employee.ratingCount,
+      ratingAverage: employee.ratingAverage,
+      ratingCount: employee.ratingCount,
     });
-
   } catch (err) {
-
-    console.error(
-      "RATE EMPLOYEE ERROR =>",
-      err
-    );
-
-    res.status(500).json({
-      msg: err.message,
-      stack: err.stack,
-    });
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
