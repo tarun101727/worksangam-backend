@@ -129,28 +129,6 @@ welcomeBonusClaimed: {
   default: false
 },
 
-subscriptionPlan: {
-  type: String,
-  enum: ["none", "silver", "gold", "platinum"],
-  default: "none",
-},
-
-subscriptionStatus: {
-  type: String,
-  enum: ["inactive", "active", "expired"],
-  default: "inactive",
-},
-
-subscriptionStart: {
-  type: Date,
-  default: null,
-},
-
-subscriptionEnd: {
-  type: Date,
-  default: null,
-},
-
   createdAt: { type: Date, default: Date.now },
 });
 
