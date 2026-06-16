@@ -14,8 +14,6 @@ import DeleteReason from "../models/DeleteReason.js";
 import cloudinary from '../config/cloudinary.js';
 import Profession from "../models/Profession.js" 
 
-
-
 const MIN_AGE = 18;
 const MAX_AGE = 100;
 const ALLOWED_GENDERS = ["Male", "Female", "Other"];
@@ -1168,7 +1166,9 @@ export const createEmployeeAccount = async (req, res) => {
       skills,
       experience: Number(experience),
       bio,
-      languages: languages.split(",").map((l) => l.trim()),
+      languages: languages
+  ? languages.split(",").map((l) => l.trim())
+  : [],
       avatarInitial: firstName.charAt(0).toUpperCase(),
       avatarColor: getAvatarColor(firstName),
       role: "employee",        // still keep (safe)
