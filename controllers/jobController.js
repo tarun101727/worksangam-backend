@@ -538,23 +538,12 @@ export const updateJob = async (req, res) => {
     // 🔹 Update all fields
     if (profession) job.profession = profession;
     if (description) job.description = description;
-    if (languages !== undefined)
-  job.languages = languages;
-
-if (preferredTime !== undefined)
-  job.preferredTime = preferredTime;
-
-if (safetyWarnings !== undefined)
-  job.safetyWarnings = safetyWarnings;
-
-if (addressDetails !== undefined)
-  job.addressDetails = addressDetails;
-
-if (location !== undefined)
-  job.location = location;
-
-if (media !== undefined)
-  job.media = media;
+    if (languages) job.languages = languages;
+    if (preferredTime) job.preferredTime = preferredTime;
+    if (safetyWarnings) job.safetyWarnings = safetyWarnings;
+    if (addressDetails) job.addressDetails = addressDetails;
+    if (location) job.location = location;
+    if (media) job.media = media;
 
     if (priceType === "fixed") {
   job.price = { type: "fixed", value: Number(expectedPrice), currency };
