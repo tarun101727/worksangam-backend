@@ -538,12 +538,23 @@ export const updateJob = async (req, res) => {
     // 🔹 Update all fields
     if (profession) job.profession = profession;
     if (description) job.description = description;
-    if (languages) job.languages = languages;
-    if (preferredTime) job.preferredTime = preferredTime;
-    if (safetyWarnings) job.safetyWarnings = safetyWarnings;
-    if (addressDetails) job.addressDetails = addressDetails;
-    if (location) job.location = location;
-    if (media) job.media = media;
+    if (languages !== undefined)
+  job.languages = languages;
+
+if (preferredTime !== undefined)
+  job.preferredTime = preferredTime;
+
+if (safetyWarnings !== undefined)
+  job.safetyWarnings = safetyWarnings;
+
+if (addressDetails !== undefined)
+  job.addressDetails = addressDetails;
+
+if (location !== undefined)
+  job.location = location;
+
+if (media !== undefined)
+  job.media = media;
 
     if (priceType === "fixed") {
   job.price = { type: "fixed", value: Number(expectedPrice), currency };
@@ -594,16 +605,6 @@ export const createOnlineUrgentPost = async (req, res) => {
   try {
     const hirerId = req.user.id;
 
-    const user = await User.findById(hirerId);
-    if (!user) return res.status(404).json({ msg: "User not found" });
-
-    // 🔥 URGENT COST = 10 credits
-    if (!user.credits || user.credits < 10) {
-      return res.status(400).json({
-        msg: "Not enough credits for urgent post",
-      });
-    }
-
     const {
       profession,
       description,
@@ -612,7 +613,7 @@ export const createOnlineUrgentPost = async (req, res) => {
       minPrice,
       maxPrice,
       currency,
-      languages = []
+      languages = [],
     } = req.body;
 
     if (!profession || !description) {
@@ -621,16 +622,23 @@ export const createOnlineUrgentPost = async (req, res) => {
       });
     }
 
-    // 🔥 DEDUCT 10 credits
-    user.credits -= 10;
-    await user.save();
-
     let price = null;
+
     if (priceType === "fixed") {
-      price = { type: "fixed", value: expectedPrice, currency };
+      price = {
+        type: "fixed",
+        value: expectedPrice,
+        currency,
+      };
     }
+
     if (priceType === "negotiable") {
-      price = { type: "negotiable", min: minPrice, max: maxPrice, currency };
+      price = {
+        type: "negotiable",
+        min: minPrice,
+        max: maxPrice,
+        currency,
+      };
     }
 
     const post = await HirerPost.create({
@@ -639,20 +647,45 @@ export const createOnlineUrgentPost = async (req, res) => {
       professionType: "online",
       description,
       price,
-      postType: "urgent", // ✅ IMPORTANT
+      postType: "urgent",
       status: "pending",
-      expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // 🔥 shorter = urgent
+      expiresAt: new Date(
+        Date.now() + 12 * 60 * 60 * 1000
+      ),
       languages,
     });
 
-    res.json({
+    const employees = await User.find({
+      role: "employee",
+      profession: profession,
+      isAvailable: true,
+    }).select("_id");
+
+    employees.forEach((emp) => {
+      io.to(emp._id.toString()).emit(
+        "new-job-notification",
+        {
+          type: "new_job",
+          postId: post._id,
+          profession: post.profession,
+          description: post.description,
+          price: post.price,
+          hirer: {
+            _id: hirerId,
+          },
+        }
+      );
+    });
+
+    res.status(201).json({
       msg: "Urgent online job created",
       job: post,
-      remainingCredits: user.credits,
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      msg: "Server error",
+    });
   }
 };
