@@ -543,8 +543,8 @@ export const updateJob = async (req, res) => {
     if (safetyWarnings) job.safetyWarnings = safetyWarnings;
     if (addressDetails) job.addressDetails = addressDetails;
     if (location) job.location = location;
-    if (req.body.existingMedia) {
-  job.media = req.body.existingMedia.map(m => ({
+    if (req.body.media) {
+  job.media = req.body.media.map(m => ({
     url: m.url,
     type: m.type || "image",
   }));
