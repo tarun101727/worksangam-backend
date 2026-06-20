@@ -544,7 +544,10 @@ export const updateJob = async (req, res) => {
     if (addressDetails) job.addressDetails = addressDetails;
     if (location) job.location = location;
     if (req.body.existingMedia) {
-  job.media = req.body.existingMedia;
+  job.media = req.body.existingMedia.map(m => ({
+    url: m.url,
+    type: m.type || "image",
+  }));
 }
 
     if (priceType === "fixed") {
