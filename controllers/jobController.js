@@ -543,7 +543,9 @@ export const updateJob = async (req, res) => {
     if (safetyWarnings) job.safetyWarnings = safetyWarnings;
     if (addressDetails) job.addressDetails = addressDetails;
     if (location) job.location = location;
-    if (media) job.media = media;
+    if (req.body.existingMedia) {
+  job.media = req.body.existingMedia;
+}
 
     if (priceType === "fixed") {
   job.price = { type: "fixed", value: Number(expectedPrice), currency };
