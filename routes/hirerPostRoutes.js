@@ -13,6 +13,7 @@ import {
   searchLocationSuggestions,
   createPostWithCredits,
   createUrgentPostWithCredits,
+  uploadMedia,
 } from "../controllers/hirerPostController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 
@@ -95,5 +96,11 @@ router.post(
   createUrgentPostWithCredits
 );
 
+router.post(
+  "/upload-media",
+  authMiddleware,
+  upload.array("media", 6),
+  uploadMedia
+);
 
 export default router;
