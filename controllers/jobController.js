@@ -543,7 +543,13 @@ export const updateJob = async (req, res) => {
     if (safetyWarnings) job.safetyWarnings = safetyWarnings;
     if (addressDetails) job.addressDetails = addressDetails;
     if (location) job.location = location;
-    if (Array.isArray(req.body.media)) {
+   if (Array.isArray(req.body.media)) {
+
+  console.log("===============");
+  console.log("MEDIA RECEIVED");
+  console.log(JSON.stringify(req.body.media, null, 2));
+  console.log("===============");
+
   job.media = req.body.media
     .filter(m => m && m.url)
     .map(m => ({
