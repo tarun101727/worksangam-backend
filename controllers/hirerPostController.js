@@ -204,6 +204,42 @@ for (const file of files) {
   }
 };
 
+export const uploadMedia = async (req, res) => {
+  try {
+    const files = req.files || [];
+
+    const media = [];
+
+    for (const file of files) {
+      const isVideo =
+        file.mimetype.startsWith("video");
+
+      const result =
+        await uploadToCloudinary(
+          file,
+          isVideo
+        );
+
+      media.push({
+        url: result.secure_url,
+        type: isVideo ? "video" : "image",
+      });
+    }
+
+    return res.json({
+      media,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      msg: "Upload failed",
+    });
+  }
+};
+
+
 
 /* ===========================
    UNLOCK URGENT (PAYMENT)
