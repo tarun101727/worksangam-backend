@@ -543,11 +543,13 @@ export const updateJob = async (req, res) => {
     if (safetyWarnings) job.safetyWarnings = safetyWarnings;
     if (addressDetails) job.addressDetails = addressDetails;
     if (location) job.location = location;
-    if (req.body.media) {
-  job.media = req.body.media.map(m => ({
-    url: m.url,
-    type: m.type || "image",
-  }));
+    if (Array.isArray(req.body.media)) {
+  job.media = req.body.media
+    .filter(m => m && m.url)
+    .map(m => ({
+      url: m.url,
+      type: m.type || "image",
+    }));
 }
 
     if (priceType === "fixed") {
