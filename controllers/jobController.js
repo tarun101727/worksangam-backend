@@ -545,11 +545,6 @@ export const updateJob = async (req, res) => {
     if (location) job.location = location;
    if (Array.isArray(req.body.media)) {
 
-  console.log("===============");
-  console.log("MEDIA RECEIVED");
-  console.log(JSON.stringify(req.body.media, null, 2));
-  console.log("===============");
-
   job.media = req.body.media
     .filter(m => m && m.url)
     .map(m => ({
@@ -570,7 +565,15 @@ export const updateJob = async (req, res) => {
 
     await job.save();
 
-    res.json({ msg: "Job updated successfully", job });
+/*
+🔥 SEND LIVE UPDATE
+*/
+io.emit("job-updated", job);
+
+res.json({
+  msg: "Job updated successfully",
+  job,
+});
 
   } catch (err) {
     console.error("Update job error:", err);
