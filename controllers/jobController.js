@@ -566,9 +566,13 @@ export const updateJob = async (req, res) => {
     await job.save();
 
 /*
-🔥 SEND LIVE UPDATE
+🔥 REALTIME JOB UPDATE
 */
-io.emit("job-updated", job);
+
+io.emit("job-updated", {
+  jobId: job._id.toString(),
+  job,
+});
 
 res.json({
   msg: "Job updated successfully",
