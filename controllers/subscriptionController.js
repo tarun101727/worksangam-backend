@@ -1,178 +1,352 @@
-import { Cashfree, CFEnvironment } from "cashfree-pg";
+import axios from "axios";
 import User from "../models/User.js";
+import Subscription from "../models/Subscription.js";
+import {
+  SUBSCRIPTION_PLANS,
+} from "../utils/subscriptionPlans.js";
 
-Cashfree.XClientId = process.env.CASHFREE_APP_ID;
-Cashfree.XClientSecret = process.env.CASHFREE_SECRET_KEY;
-Cashfree.XEnvironment = CFEnvironment.PRODUCTION;
+export const createSubscription =
+async (req,res)=>{
+try{
 
-export const createSubscriptionOrder = async (req, res) => {
-  try {
-    const userId = req.user.id;
+const userId=req.user.id;
+const {planName}=req.body;
 
-    const { plan } = req.body;
+const plan=
+SUBSCRIPTION_PLANS[planName];
 
-    let amount = 0;
+if(!plan){
+return res.status(400).json({
+msg:"Invalid Plan"
+});
+}
 
-    switch (plan) {
-      case "silver":
-        amount = 99;
-        break;
+const user=
+await User.findById(userId);
 
-      case "gold":
-        amount = 199;
-        break;
+const subscriptionId=
+`sub_${Date.now()}`;
 
-      case "platinum":
-        amount = 499;
-        break;
+const response=
+await axios.post(
+"https://api.cashfree.com/pg/subscriptions",
+{
+subscription_id:
+subscriptionId,
 
-      default:
-        return res.status(400).json({
-          msg: "Invalid plan",
-        });
-    }
+customer_details:{
+customer_id:userId,
+customer_email:user.email,
+customer_phone:
+"9999999999"
+},
 
-    const user = await User.findById(userId);
+subscription_meta:{
+return_url:
+"https://worksangam.in/subscription-success"
+},
 
-    if (!user) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
-    }
+plan_details:{
+plan_name:planName,
+plan_amount:plan.amount,
+plan_currency:"INR",
+plan_period:"MONTH"
+}
+},
+{
+headers:{
+"x-client-id":
+process.env.CASHFREE_APP_ID,
 
-    const orderId =
-      "sub_" +
-      Date.now() +
-      "_" +
-      Math.floor(Math.random() * 10000);
+"x-client-secret":
+process.env.CASHFREE_SECRET_KEY,
 
-    const request = {
-      order_amount: amount,
-      order_currency: "INR",
+"x-api-version":
+"2022-09-01"
+}
+}
+);
 
-      order_id: orderId,
+await Subscription.create({
+userId,
+planName,
+amount:plan.amount,
+subscriptionId,
+status:"PENDING"
+});
 
-      customer_details: {
-        customer_id: user._id.toString(),
-        customer_email: user.email,
-        customer_phone: "9999999999",
-      },
+res.json({
+subscription_id:
+subscriptionId,
 
-      order_meta: {
-        return_url:
-          "https://worksangam.in/payment-success?order_id={order_id}",
-      },
-    };
+payment_link:
+response.data.auth_link
+});
 
-    const response =
-      await Cashfree.PGCreateOrder(request);
+}catch(err){
 
-    res.json({
-      orderId,
-      paymentSessionId:
-        response.data.payment_session_id,
-    });
+console.log(err.response?.data);
 
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      msg: "Order creation failed",
-    });
-  }
+res.status(500).json({
+msg:"Subscription creation failed"
+});
+}
 };
 
-export const cashfreeWebhook =
-  async (req, res) => {
-    try {
-      const data = req.body;
+export const verifySubscription = async(req,res)=>{
+try{
 
-      if (
-        data.type !==
-        "PAYMENT_SUCCESS_WEBHOOK"
-      ) {
-        return res.sendStatus(200);
-      }
+const {subscriptionId}=req.body;
 
-      const customerId =
-        data.data.customer_details
-          .customer_id;
+const response=
+await axios.get(
+`https://api.cashfree.com/pg/subscriptions/${subscriptionId}`,
+{
+headers:{
+"x-client-id":
+process.env.CASHFREE_APP_ID,
 
-      const user =
-        await User.findById(customerId);
+"x-client-secret":
+process.env.CASHFREE_SECRET_KEY,
 
-      if (!user) {
-        return res.sendStatus(200);
-      }
+"x-api-version":
+"2022-09-01"
+}
+}
+);
 
-      user.subscriptionStatus =
-        "active";
+if(
+response.data.subscription_status
+=== "ACTIVE"
+){
 
-      await user.save();
+const subscription=
+await Subscription.findOne({
+subscriptionId
+});
 
-      res.sendStatus(200);
+subscription.status="ACTIVE";
 
-    } catch (err) {
-      console.error(err);
+subscription.startDate=
+new Date();
 
-      res.sendStatus(500);
-    }
-  };
+subscription.expiryDate=
+new Date(
+Date.now()+
+30*24*60*60*1000
+);
 
-  export const verifySubscriptionPayment =
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
+await subscription.save();
 
-      const { orderId, plan } = req.body;
+await User.findByIdAndUpdate(
+subscription.userId,
+{
+subscriptionStatus:
+"ACTIVE",
 
-      const payment =
-        await Cashfree.PGFetchOrder(orderId);
+subscriptionPlan:
+subscription.planName,
 
-      if (
-        payment.data.order_status !==
-        "PAID"
-      ) {
-        return res.status(400).json({
-          msg: "Payment not completed",
-        });
-      }
+subscriptionId,
 
-      const user =
-        await User.findById(userId);
+subscriptionStart:
+subscription.startDate,
 
-      const startDate = new Date();
+subscriptionEnd:
+subscription.expiryDate
+}
+);
+}
 
-      const endDate = new Date();
+res.json(response.data);
 
-      endDate.setMonth(
-        endDate.getMonth() + 1
-      );
+}catch(err){
 
-      user.subscriptionPlan = plan;
+res.status(500).json({
+msg:"Verification failed"
+});
+}
+};
 
-      user.subscriptionStatus =
-        "active";
+export const cashfreeSubscriptionWebhook =
+async(req,res)=>{
+try{
 
-      user.subscriptionStart =
-        startDate;
+const data=req.body;
 
-      user.subscriptionEnd =
-        endDate;
+const subscriptionId=
+data.data?.subscription
+?.subscription_id;
 
-      await user.save();
+const status=
+data.data?.subscription
+?.subscription_status;
 
-      res.json({
-        msg:
-          "Subscription activated",
-      });
+if(!subscriptionId){
+return res.sendStatus(200);
+}
 
-    } catch (err) {
-      console.error(err);
+const subscription=
+await Subscription.findOne({
+subscriptionId
+});
 
-      res.status(500).json({
-        msg:
-          "Verification failed",
-      });
-    }
-  };
+if(!subscription){
+return res.sendStatus(200);
+}
+
+if(status==="ACTIVE"){
+
+subscription.status="ACTIVE";
+
+subscription.lastPaymentDate=
+new Date();
+
+subscription.nextBillingDate=
+new Date(
+Date.now()+
+30*24*60*60*1000
+);
+
+await subscription.save();
+
+await User.findByIdAndUpdate(
+subscription.userId,
+{
+subscriptionStatus:
+"ACTIVE",
+
+subscriptionPlan:
+subscription.planName,
+
+subscriptionStart:
+new Date(),
+
+subscriptionEnd:
+subscription.nextBillingDate
+}
+);
+}
+
+if(status==="FAILED"){
+
+subscription.status="FAILED";
+
+await subscription.save();
+
+await User.findByIdAndUpdate(
+subscription.userId,
+{
+subscriptionStatus:"FAILED"
+}
+);
+}
+
+if(status==="CANCELLED"){
+
+subscription.status=
+"CANCELLED";
+
+await subscription.save();
+
+await User.findByIdAndUpdate(
+subscription.userId,
+{
+subscriptionStatus:
+"CANCELLED"
+}
+);
+}
+
+res.sendStatus(200);
+
+}catch(err){
+
+console.log(err);
+
+res.sendStatus(500);
+}
+};
+
+
+export const getSubscriptionStatus =
+async(req,res)=>{
+try{
+
+const subscription =
+await Subscription.findOne({
+userId:req.user.id
+}).sort({createdAt:-1});
+
+if(!subscription){
+return res.json({
+status:"NONE"
+});
+}
+
+res.json(subscription);
+
+}catch(err){
+
+res.status(500).json({
+msg:"Server Error"
+});
+}
+};
+
+
+export const cancelSubscription =
+async(req,res)=>{
+try{
+
+const {subscriptionId} =
+req.body;
+
+await axios.post(
+`https://api.cashfree.com/pg/subscriptions/${subscriptionId}/cancel`,
+{},
+{
+headers:{
+"x-client-id":
+process.env.CASHFREE_APP_ID,
+
+"x-client-secret":
+process.env.CASHFREE_SECRET_KEY,
+
+"x-api-version":
+"2022-09-01"
+}
+}
+);
+
+const subscription =
+await Subscription.findOne({
+subscriptionId
+});
+
+subscription.status =
+"CANCELLED";
+
+await subscription.save();
+
+await User.findByIdAndUpdate(
+subscription.userId,
+{
+subscriptionStatus:
+"CANCELLED"
+}
+);
+
+res.json({
+success:true
+});
+
+}catch(err){
+
+console.log(err);
+
+res.status(500).json({
+msg:"Cancel Failed"
+});
+}
+};
