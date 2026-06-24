@@ -1,24 +1,47 @@
 import express from "express";
-import authMiddleware from "../middleware/authMiddleware.js";
+
+import authMiddleware
+from "../middleware/authMiddleware.js";
 
 import {
-  createSubscriptionOrder,
-  verifySubscription,
-} from "../controllers/subscriptionController.js";
+createSubscription,
+verifySubscription,
+cashfreeSubscriptionWebhook,
+getSubscriptionStatus,
+cancelSubscription
+}
+from "../controllers/subscriptionController.js";
 
-const router =
-  express.Router();
+const router=express.Router();
 
 router.post(
-  "/create-order",
-  authMiddleware,
-  createSubscriptionOrder
+"/create",
+authMiddleware,
+createSubscription
 );
 
 router.post(
-  "/verify",
-  authMiddleware,
-  verifySubscription
+"/verify",
+authMiddleware,
+verifySubscription
 );
+
+router.post(
+"/webhook",
+cashfreeSubscriptionWebhook
+);
+
+router.get(
+"/status",
+authMiddleware,
+getSubscriptionStatus
+);
+
+router.post(
+"/cancel",
+authMiddleware,
+cancelSubscription
+);
+
 
 export default router;
