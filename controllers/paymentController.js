@@ -133,3 +133,19 @@ export const getUserPayments = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+
+export const getCreditPlans = async (req, res) => {
+    try {
+        const plans = Object.entries(CREDIT_PLANS).map(([amount, credits]) => ({
+            amount: Number(amount),
+            credits,
+        }));
+
+        res.json({ plans });
+    } catch (err) {
+        res.status(500).json({
+            msg: "Server error",
+        });
+    }
+};
