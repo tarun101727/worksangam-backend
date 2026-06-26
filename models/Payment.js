@@ -4,15 +4,24 @@ const paymentSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    required: true,
   },
 
-  orderId: String,
-
-  amount: Number,
-
-  plan: {
+  orderId: {
     type: String,
-    enum: ["BASIC", "PREMIUM", "VIP"],
+    required: true,
+    unique: true,
+  },
+
+  amount: {
+    type: Number,
+    required: true,
+  },
+
+  // NEW
+  credits: {
+    type: Number,
+    required: true,
   },
 
   status: {
@@ -21,11 +30,15 @@ const paymentSchema = new mongoose.Schema({
     default: "PENDING",
   },
 
+  paymentGateway: {
+    type: String,
+    default: "Cashfree",
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
-
 
 export default mongoose.model("Payment", paymentSchema);
