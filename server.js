@@ -20,7 +20,6 @@ import languageRoutes from "./routes/languageRoutes.js";
 import pushRoutes from './routes/pushRoutes.js';
 import paymentRoutes from "./routes/paymentRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
-import creditRoutes from "./routes/creditRoutes.js";
 
 
 const app = express();
@@ -80,8 +79,6 @@ app.use("/api/languages", languageRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/push', pushRoutes); 
 app.use('/api/subscription', subscriptionRoutes); 
-app.use("/api/credits", creditRoutes);
-
 
 /* -------------------- Start Server -------------------- */
 const PORT = process.env.PORT || 3000;
