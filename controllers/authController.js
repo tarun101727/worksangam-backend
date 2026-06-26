@@ -1796,6 +1796,13 @@ export const claimWelcomeBonus = async (req, res) => {
 
     await user.save();
 
+    await CreditTransaction.create({
+    userId: user._id,
+    type: "WELCOME_BONUS",
+    credits: 10,
+    description: "Welcome Bonus",
+});
+
     res.json({
       msg: "Bonus claimed",
       credits: user.credits
