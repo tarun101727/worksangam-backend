@@ -2,8 +2,7 @@ import axios from "axios";
 import Payment from "../models/Payment.js";
 import { CREDIT_PLANS } from "../utils/creditPlans.js";
 import User from "../models/User.js";
-
-
+import CreditTransaction from "../models/CreditTransaction.js";
 
 export const createOrder = async (req, res) => {
   try {
@@ -59,10 +58,6 @@ export const createOrder = async (req, res) => {
   }
 );
 
-
-console.log("CASHFREE RESPONSE");
-console.log(response.data);
-
    res.json({
 
   payment_session_id:
@@ -80,16 +75,11 @@ console.log(response.data);
 
 export const cashfreeWebhook = async (req, res) => {
   try {
-    console.log("🔥 Cashfree webhook received:", req.body);
-
     const data = req.body;
 
     // ✅ FIXED: correct Cashfree structure
     const orderId = data.data?.order?.order_id;
     const paymentStatus = data.data?.payment?.payment_status;
-
-    console.log("OrderId:", orderId);
-    console.log("Payment Status:", paymentStatus);
 
     if (!orderId) return res.sendStatus(400);
 
@@ -108,7 +98,14 @@ export const cashfreeWebhook = async (req, res) => {
         $inc: { credits: payment.credits },
       });
 
-      console.log(`✅ Credits added: +${payment.credits}`);
+      await CreditTransaction.create({
+    userId: payment.userId,
+    type: "CREDIT",
+    credits: payment.credits,
+    paymentId: payment._id,
+    description: `Purchased ${payment.credits} credits`,
+});
+
     } else {
       payment.status = "FAILED";
       await payment.save();
