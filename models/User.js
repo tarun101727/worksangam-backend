@@ -129,9 +129,27 @@ welcomeBonusClaimed: {
   default: false
 },
 
+isPremium: {
+    type: Boolean,
+    default: false,
+},
+
+premiumPurchasedAt: {
+    type: Date,
+},
+
+premiumExpiresAt: {
+    type: Date,
+},
+
+subscriptionPlan: {
+    type: String,
+    default: null,
+},
+
   createdAt: { type: Date, default: Date.now },
 });
 
 UserSchema.index({ location: "2dsphere" });
 
-export default mongoose.model('User', UserSchema);
+export default mongoose.model('User', UserSchema); 
