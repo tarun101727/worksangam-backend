@@ -1,16 +1,21 @@
 export const SUBSCRIPTION_PLANS = {
-  BASIC: {
-    amount: 99,
-    days: 30,
-  },
 
-  PREMIUM: {
-    amount: 299,
-    days: 30,
-  },
+    BASIC:{
+        amount:199,
+        duration:30,
+        name:"Premium Monthly"
+    },
 
-  VIP: {
-    amount: 599,
-    days: 30,
-  },
+    PRO:{
+        amount:499,
+        duration:90,
+        name:"Premium Quarterly"
+    },
+
+    ULTRA:{
+        amount:999,
+        duration:365,
+        name:"Premium Yearly"
+    }
+
 };
