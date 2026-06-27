@@ -15,6 +15,9 @@ import {
   updateLiveLocation
 } from "../controllers/chatController.js";
 
+import { requirePremium } from "../middleware/premiumMiddleware.js";
+
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -60,16 +63,21 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post("/create/:userId", authMiddleware, createChat);
-router.get("/", authMiddleware, getChats);
-router.get("/messages/:chatId", authMiddleware, getMessages);
-router.post("/send/:chatId", authMiddleware, sendMessage);
+router.get("/", authMiddleware, requirePremium, getChats);
+
+router.get("/messages/:chatId", authMiddleware, requirePremium, getMessages);
+
+router.post("/send/:chatId", authMiddleware, requirePremium, sendMessage);
+
 router.post(
   "/send-media/:chatId",
   authMiddleware,
+  requirePremium,
   upload.single("media"),
   sendMedia
 );
+
+router.post("/create/:userId", authMiddleware, requirePremium, createChat);
 
 router.get("/notifications", authMiddleware, getChatNotifications);
 router.put("/notifications/read", authMiddleware, markChatNotificationsRead);
