@@ -63,7 +63,7 @@ export const createSubscriptionOrder = async (req, res) => {
     });
 
     const response = await axios.post(
-      "https://api.cashfree.com/pg/orders",
+      "https://sandbox.cashfree.com/pg/orders",
       {
         order_id: orderId,
 
