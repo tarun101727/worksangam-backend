@@ -1,352 +1,264 @@
 import axios from "axios";
+
 import User from "../models/User.js";
-import Subscription from "../models/Subscription.js";
-import {
-  SUBSCRIPTION_PLANS,
-} from "../utils/subscriptionPlans.js";
-
-export const createSubscription =
-async (req,res)=>{
-try{
-
-const userId=req.user.id;
-const {planName}=req.body;
-
-const plan=
-SUBSCRIPTION_PLANS[planName];
-
-if(!plan){
-return res.status(400).json({
-msg:"Invalid Plan"
-});
-}
-
-const user=
-await User.findById(userId);
-
-const subscriptionId=
-`sub_${Date.now()}`;
-
-const response=
-await axios.post(
-"https://api.cashfree.com/pg/subscriptions",
-{
-subscription_id:
-subscriptionId,
-
-customer_details:{
-customer_id:userId,
-customer_email:user.email,
-customer_phone:
-"9999999999"
-},
-
-subscription_meta:{
-return_url:
-"https://worksangam.in/subscription-success"
-},
-
-plan_details:{
-plan_name:planName,
-plan_amount:plan.amount,
-plan_currency:"INR",
-plan_period:"MONTH"
-}
-},
-{
-headers:{
-"x-client-id":
-process.env.CASHFREE_APP_ID,
-
-"x-client-secret":
-process.env.CASHFREE_SECRET_KEY,
-
-"x-api-version":
-"2022-09-01"
-}
-}
-);
-
-await Subscription.create({
-userId,
-planName,
-amount:plan.amount,
-subscriptionId,
-status:"PENDING"
-});
-
-res.json({
-subscription_id:
-subscriptionId,
-
-payment_link:
-response.data.auth_link
-});
-
-}catch(err){
-
-console.log(err.response?.data);
-
-res.status(500).json({
-msg:"Subscription creation failed"
-});
-}
-};
-
-export const verifySubscription = async(req,res)=>{
-try{
-
-const {subscriptionId}=req.body;
-
-const response=
-await axios.get(
-`https://api.cashfree.com/pg/subscriptions/${subscriptionId}`,
-{
-headers:{
-"x-client-id":
-process.env.CASHFREE_APP_ID,
-
-"x-client-secret":
-process.env.CASHFREE_SECRET_KEY,
-
-"x-api-version":
-"2022-09-01"
-}
-}
-);
-
-if(
-response.data.subscription_status
-=== "ACTIVE"
-){
-
-const subscription=
-await Subscription.findOne({
-subscriptionId
-});
-
-subscription.status="ACTIVE";
-
-subscription.startDate=
-new Date();
-
-subscription.expiryDate=
-new Date(
-Date.now()+
-30*24*60*60*1000
-);
-
-await subscription.save();
-
-await User.findByIdAndUpdate(
-subscription.userId,
-{
-subscriptionStatus:
-"ACTIVE",
-
-subscriptionPlan:
-subscription.planName,
-
-subscriptionId,
-
-subscriptionStart:
-subscription.startDate,
-
-subscriptionEnd:
-subscription.expiryDate
-}
-);
-}
-
-res.json(response.data);
-
-}catch(err){
-
-res.status(500).json({
-msg:"Verification failed"
-});
-}
-};
-
-export const cashfreeSubscriptionWebhook =
-async(req,res)=>{
-try{
-
-const data=req.body;
-
-const subscriptionId=
-data.data?.subscription
-?.subscription_id;
-
-const status=
-data.data?.subscription
-?.subscription_status;
-
-if(!subscriptionId){
-return res.sendStatus(200);
-}
-
-const subscription=
-await Subscription.findOne({
-subscriptionId
-});
-
-if(!subscription){
-return res.sendStatus(200);
-}
-
-if(status==="ACTIVE"){
-
-subscription.status="ACTIVE";
-
-subscription.lastPaymentDate=
-new Date();
-
-subscription.nextBillingDate=
-new Date(
-Date.now()+
-30*24*60*60*1000
-);
-
-await subscription.save();
-
-await User.findByIdAndUpdate(
-subscription.userId,
-{
-subscriptionStatus:
-"ACTIVE",
-
-subscriptionPlan:
-subscription.planName,
-
-subscriptionStart:
-new Date(),
-
-subscriptionEnd:
-subscription.nextBillingDate
-}
-);
-}
-
-if(status==="FAILED"){
-
-subscription.status="FAILED";
-
-await subscription.save();
-
-await User.findByIdAndUpdate(
-subscription.userId,
-{
-subscriptionStatus:"FAILED"
-}
-);
-}
-
-if(status==="CANCELLED"){
-
-subscription.status=
-"CANCELLED";
-
-await subscription.save();
-
-await User.findByIdAndUpdate(
-subscription.userId,
-{
-subscriptionStatus:
-"CANCELLED"
-}
-);
-}
-
-res.sendStatus(200);
-
-}catch(err){
-
-console.log(err);
-
-res.sendStatus(500);
-}
+import SubscriptionPayment from "../models/SubscriptionPayment.js";
+
+import { SUBSCRIPTION_PLANS } from "../utils/subscriptionPlans.js";
+
+export const getSubscriptionPlans = async (req, res) => {
+  try {
+    const plans = Object.entries(SUBSCRIPTION_PLANS).map(
+      ([key, value]) => ({
+        id: key,
+        name: value.name,
+        amount: value.amount,
+        duration: value.duration,
+      })
+    );
+
+    res.json({
+      plans,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error",
+    });
+  }
 };
 
 
-export const getSubscriptionStatus =
-async(req,res)=>{
-try{
+export const createSubscriptionOrder = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { planId } = req.body;
 
-const subscription =
-await Subscription.findOne({
-userId:req.user.id
-}).sort({createdAt:-1});
+    const plan = SUBSCRIPTION_PLANS[planId];
 
-if(!subscription){
-return res.json({
-status:"NONE"
-});
-}
+    if (!plan) {
+      return res.status(400).json({
+        msg: "Invalid subscription plan",
+      });
+    }
 
-res.json(subscription);
+    const user = await User.findById(userId);
 
-}catch(err){
+    if (!user) {
+      return res.status(404).json({
+        msg: "User not found",
+      });
+    }
 
-res.status(500).json({
-msg:"Server Error"
-});
-}
+    const orderId = `sub_${Date.now()}`;
+
+    await SubscriptionPayment.create({
+      userId,
+      orderId,
+      amount: plan.amount,
+      planName: plan.name,
+      durationDays: plan.duration,
+      status: "PENDING",
+    });
+
+    const response = await axios.post(
+      "https://api.cashfree.com/pg/orders",
+      {
+        order_id: orderId,
+
+        order_amount: plan.amount,
+
+        order_currency: "INR",
+
+        customer_details: {
+          customer_id: user._id.toString(),
+          customer_email: user.email,
+          customer_phone:
+            "9" +
+            Math.floor(
+              100000000 + Math.random() * 900000000
+            ),
+        },
+
+        order_meta: {
+          return_url: `https://worksangam.in/subscription-success?order_id=${orderId}`,
+        },
+      },
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2022-09-01",
+        },
+      }
+    );
+
+    res.status(200).json({
+      payment_session_id: response.data.payment_session_id,
+      order_id: response.data.order_id,
+    });
+
+  } catch (err) {
+    console.error(
+      "Subscription Order Error:",
+      err.response?.data || err.message
+    );
+
+    res.status(500).json({
+      msg: "Subscription creation failed",
+    });
+  }
 };
 
 
-export const cancelSubscription =
-async(req,res)=>{
-try{
+export const cashfreeSubscriptionWebhook = async (req, res) => {
+  try {
+    const data = req.body;
 
-const {subscriptionId} =
-req.body;
+    const orderId = data.data?.order?.order_id;
+    const paymentStatus = data.data?.payment?.payment_status;
 
-await axios.post(
-`https://api.cashfree.com/pg/subscriptions/${subscriptionId}/cancel`,
-{},
-{
-headers:{
-"x-client-id":
-process.env.CASHFREE_APP_ID,
+    if (!orderId) {
+      return res.sendStatus(400);
+    }
 
-"x-client-secret":
-process.env.CASHFREE_SECRET_KEY,
+    const payment = await SubscriptionPayment.findOne({
+      orderId,
+    });
 
-"x-api-version":
-"2022-09-01"
-}
-}
-);
+    if (!payment) {
+      return res.sendStatus(404);
+    }
 
-const subscription =
-await Subscription.findOne({
-subscriptionId
-});
+    // Prevent duplicate processing
+    if (payment.status === "SUCCESS") {
+      return res.sendStatus(200);
+    }
 
-subscription.status =
-"CANCELLED";
+    if (paymentStatus === "SUCCESS") {
 
-await subscription.save();
+      payment.status = "SUCCESS";
+      await payment.save();
 
-await User.findByIdAndUpdate(
-subscription.userId,
-{
-subscriptionStatus:
-"CANCELLED"
-}
-);
+      const user = await User.findById(payment.userId);
 
-res.json({
-success:true
-});
+      if (!user) {
+        return res.sendStatus(404);
+      }
 
-}catch(err){
+      const now = new Date();
 
-console.log(err);
+      // Extend existing subscription if still active
+      let startDate = now;
 
-res.status(500).json({
-msg:"Cancel Failed"
-});
-}
+      if (
+        user.premiumExpiresAt &&
+        user.premiumExpiresAt > now
+      ) {
+        startDate = new Date(user.premiumExpiresAt);
+      }
+
+      const expiresAt = new Date(startDate);
+
+      expiresAt.setDate(
+        expiresAt.getDate() + payment.durationDays
+      );
+
+      user.isPremium = true;
+      user.subscriptionPlan = payment.planName;
+
+      if (!user.premiumPurchasedAt) {
+        user.premiumPurchasedAt = now;
+      }
+
+      user.premiumExpiresAt = expiresAt;
+
+      await user.save();
+
+      console.log(
+        `✅ Premium activated for user ${user._id}`
+      );
+
+    } else {
+
+      payment.status = "FAILED";
+      await payment.save();
+
+      console.log(
+        `❌ Subscription payment failed: ${orderId}`
+      );
+    }
+
+    res.sendStatus(200);
+
+  } catch (err) {
+
+    console.error(
+      "Subscription Webhook Error:",
+      err
+    );
+
+    res.sendStatus(500);
+  }
+};
+
+
+export const getSubscriptionStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select(
+      `
+      isPremium
+      subscriptionPlan
+      premiumPurchasedAt
+      premiumExpiresAt
+      `
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        msg: "User not found",
+      });
+    }
+
+    // Auto-expire subscription if needed
+    if (
+      user.isPremium &&
+      user.premiumExpiresAt &&
+      new Date() > user.premiumExpiresAt
+    ) {
+      user.isPremium = false;
+      user.subscriptionPlan = null;
+      user.premiumPurchasedAt = null;
+      user.premiumExpiresAt = null;
+
+      await user.save();
+    }
+
+    return res.status(200).json({
+      isPremium: user.isPremium,
+      subscriptionPlan: user.subscriptionPlan,
+      premiumPurchasedAt: user.premiumPurchasedAt,
+      premiumExpiresAt: user.premiumExpiresAt,
+      daysRemaining:
+        user.isPremium && user.premiumExpiresAt
+            ? Math.max(
+                0,
+                Math.ceil(
+                  (new Date(user.premiumExpiresAt) - new Date()) /
+                      (1000 * 60 * 60 * 24)
+                )
+              )
+            : 0,
+    });
+
+  } catch (err) {
+    console.error("Get Subscription Status Error:", err);
+
+    return res.status(500).json({
+      msg: "Server error",
+    });
+  }
 };
