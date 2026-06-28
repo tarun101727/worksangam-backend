@@ -6,46 +6,63 @@ import User from "../models/User.js";
 import { encryptMessage, decryptMessage } from "../utils/encryption.js";
 import { io } from "../socket.js";
 import ChatNotification from "../models/ChatNotification.js";
-import SubscriptionPayment from "../models/SubscriptionPayment.js";
-
 
 /* create or get chat */
 export const createChat = async (req, res) => {
-  const senderId = req.user.id;
-  const receiverId = req.params.userId;
+  try {
+    const senderId = req.user.id;
+    const receiverId = req.params.userId;
 
-  // Logged in user
-  const sender = await User.findById(senderId);
+    // Check subscription
+    const sender = await User.findById(senderId);
 
-  if (!sender) {
-    return res.status(404).json({
-      msg: "User not found",
+    if (!sender) {
+      return res.status(404).json({
+        msg: "User not found",
+      });
+    }
+
+    // Auto expire premium
+    if (
+      sender.isPremium &&
+      sender.premiumExpiresAt &&
+      new Date() > sender.premiumExpiresAt
+    ) {
+      sender.isPremium = false;
+      sender.subscriptionPlan = null;
+      sender.premiumPurchasedAt = null;
+      sender.premiumExpiresAt = null;
+      await sender.save();
+    }
+
+    // Subscription required
+    if (!sender.isPremium) {
+      return res.status(403).json({
+        code: "SUBSCRIPTION_REQUIRED",
+        message:
+            "A Premium Subscription is required to chat with employees.",
+      });
+    }
+
+    let chat = await Chat.findOne({
+      participants: { $all: [senderId, receiverId] }
+    });
+
+    if (!chat) {
+      chat = await Chat.create({
+        participants: [senderId, receiverId]
+      });
+    }
+
+    res.json(chat);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error",
     });
   }
-
-  // Check subscription expiry
-  if (
-    !sender.isPremium ||
-    !sender.premiumExpiresAt ||
-    new Date() > sender.premiumExpiresAt
-  ) {
-    return res.status(403).json({
-      code: "SUBSCRIPTION_REQUIRED",
-      msg: "A Premium Subscription is required to chat with employees. Please subscribe to continue.",
-    });
-  }
-
-  let chat = await Chat.findOne({
-    participants: { $all: [senderId, receiverId] },
-  });
-
-  if (!chat) {
-    chat = await Chat.create({
-      participants: [senderId, receiverId],
-    });
-  }
-
-  res.json(chat);
 };
 
 
