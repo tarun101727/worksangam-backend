@@ -407,6 +407,7 @@ welcomeBonusClaimed
 subscriptionPlan
 subscriptionStart
 subscriptionEnd
+professionType
 `
 );
 
