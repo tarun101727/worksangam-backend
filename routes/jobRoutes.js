@@ -4,13 +4,6 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import {  acceptApplication, acceptJob, applyForJob, createOfflinePost, createOnlinePost, createOnlineUrgentPost, deleteJob, getAllJobs, getJobById, getJobsForEmployeeProfession, getMyHirerPosts, getMyNotifications, getNearbyJobs, getNotificationById,  getOfflineJobsByDistance,  markNotificationsAsRead, rejectApplication, updateJob } from "../controllers/jobController.js";
 
 
-router.get(
-    "/my-profession",
-    authMiddleware,
-    getJobsForEmployeeProfession
-);
-
-
 router.get("/offline-nearby", authMiddleware, getOfflineJobsByDistance);
 
 // routes/jobRoutes.js
@@ -58,6 +51,11 @@ router.post(
   createOnlinePost
 );
 router.post("/create-offline-post", authMiddleware, createOfflinePost);
+router.get(
+    "/my-profession",
+    authMiddleware,
+    getJobsForEmployeeProfession
+);
 router.get("/:jobId", authMiddleware, getJobById);
 router.delete("/delete/:jobId", authMiddleware, deleteJob);
 router.put("/update/:jobId", authMiddleware, updateJob);
