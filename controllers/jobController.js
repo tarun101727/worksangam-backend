@@ -698,3 +698,23 @@ export const createOnlineUrgentPost = async (req, res) => {
     });
   }
 };
+
+
+export const getJobsForEmployeeProfession = async (req, res) => {
+
+    const user = await User.findById(req.user.id);
+
+    const jobs = await HirerPost.find({
+        status: "pending",
+        profession: user.profession,
+        professionType: user.professionType
+    })
+    .populate(
+        "hirer",
+        "firstName lastName profileImage avatarInitial avatarColor"
+    )
+    .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+
+};
