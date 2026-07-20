@@ -702,20 +702,48 @@ export const createOnlineUrgentPost = async (req, res) => {
 
 
 export const getJobsForEmployeeProfession = async (req, res) => {
-
+  try {
     const user = await User.findById(req.user.id);
 
+    if (!user) {
+      return res.status(404).json({
+        msg: "User not found",
+      });
+    }
+
+    // Find profession in Profession collection
+    const professionData = await Profession.findOne({
+      name: user.profession,
+    });
+
+    if (!professionData) {
+      return res.json({
+        jobs: [],
+      });
+    }
+
+    // online / offline from Profession.js
+    const professionType = professionData.type;
+
     const jobs = await HirerPost.find({
-        status: "pending",
-        profession: user.profession,
-        professionType: user.professionType
+      status: "pending",
+      profession: user.profession,
+      professionType,
     })
-    .populate(
+      .populate(
         "hirer",
         "firstName lastName profileImage avatarInitial avatarColor"
-    )
-    .sort({ createdAt: -1 });
+      )
+      .sort({ createdAt: -1 });
 
-    res.json({ jobs });
+    res.json({
+      jobs,
+    });
+  } catch (err) {
+    console.error("Get jobs for employee profession:", err);
 
+    res.status(500).json({
+      msg: "Server error",
+    });
+  }
 };
