@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import authMiddleware from "../middleware/authMiddleware.js";
-import {  acceptApplication, acceptJob, applyForJob, createOfflinePost, createOnlinePost, createOnlineUrgentPost, deleteJob, getAllJobs, getJobById, getMyHirerPosts, getMyNotifications, getNearbyJobs, getNotificationById,  getOfflineJobsByDistance,  markNotificationsAsRead, rejectApplication, updateJob } from "../controllers/jobController.js";
+import {  acceptApplication, acceptJob, applyForJob, createOfflinePost, createOnlinePost, createOnlineUrgentPost, deleteJob, getAllJobs, getJobById, getJobsForEmployeeProfession, getMyHirerPosts, getMyNotifications, getNearbyJobs, getNotificationById,  getOfflineJobsByDistance,  markNotificationsAsRead, rejectApplication, updateJob } from "../controllers/jobController.js";
 
 router.get("/offline-nearby", authMiddleware, getOfflineJobsByDistance);
 
@@ -58,6 +58,12 @@ router.post(
   "/create-online-urgent-post",
   authMiddleware,
   createOnlineUrgentPost
+);
+
+router.get(
+    "/my-profession",
+    authMiddleware,
+    getJobsForEmployeeProfession
 );
 
 export default router;
