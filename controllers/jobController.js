@@ -701,20 +701,38 @@ export const createOnlineUrgentPost = async (req, res) => {
 
 
 export const getJobsForEmployeeProfession = async (req, res) => {
+  try {
+
+    console.log("========== MY PROFESSION ==========");
 
     const user = await User.findById(req.user.id);
 
+    console.log("User:");
+    console.log(user);
+
     const jobs = await HirerPost.find({
-        status: "pending",
-        profession: user.profession,
-        professionType: user.professionType
+      status: "pending",
+      profession: user.profession,
+      professionType: user.professionType,
     })
-    .populate(
+      .populate(
         "hirer",
         "firstName lastName profileImage avatarInitial avatarColor"
-    )
-    .sort({ createdAt: -1 });
+      )
+      .sort({ createdAt: -1 });
+
+    console.log("Jobs Found:", jobs.length);
 
     res.json({ jobs });
 
+  } catch (err) {
+
+    console.error("MY PROFESSION ERROR");
+    console.error(err);
+
+    res.status(500).json({
+      msg: "Server error",
+      error: err.message,
+    });
+  }
 };
