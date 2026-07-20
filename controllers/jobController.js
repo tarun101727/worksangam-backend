@@ -1,3 +1,4 @@
+
 import webpush from "../utils/push.js";
 import { subscriptions } from "../routes/pushRoutes.js";
 import HirerPost from "../models/HirerPost.js";
@@ -701,48 +702,20 @@ export const createOnlineUrgentPost = async (req, res) => {
 
 
 export const getJobsForEmployeeProfession = async (req, res) => {
-  try {
 
     const user = await User.findById(req.user.id);
 
-    console.log("========== USER ==========");
-    console.log(user.profession);
-    console.log(user.professionType);
-
-    const allJobs = await HirerPost.find().sort({ createdAt: -1 });
-
-    console.log("========== ALL JOBS ==========");
-
-    allJobs.forEach((job, index) => {
-      console.log("------------------------");
-      console.log(index + 1);
-      console.log("Profession :", job.profession);
-      console.log("Type       :", job.professionType);
-      console.log("Status     :", job.status);
-    });
-
     const jobs = await HirerPost.find({
-      status: "pending",
-      profession: user.profession,
-      professionType: user.professionType,
+        status: "pending",
+        profession: user.profession,
+        professionType: user.professionType
     })
-      .populate(
+    .populate(
         "hirer",
         "firstName lastName profileImage avatarInitial avatarColor"
-      )
-      .sort({ createdAt: -1 });
-
-    console.log("Matched Jobs:", jobs.length);
+    )
+    .sort({ createdAt: -1 });
 
     res.json({ jobs });
 
-  } catch (err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      msg: "Server error",
-    });
-
-  }
 };
