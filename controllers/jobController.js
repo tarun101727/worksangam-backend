@@ -703,12 +703,23 @@ export const createOnlineUrgentPost = async (req, res) => {
 export const getJobsForEmployeeProfession = async (req, res) => {
   try {
 
-    console.log("========== MY PROFESSION ==========");
-
     const user = await User.findById(req.user.id);
 
-    console.log("User:");
-    console.log(user);
+    console.log("========== USER ==========");
+    console.log(user.profession);
+    console.log(user.professionType);
+
+    const allJobs = await HirerPost.find().sort({ createdAt: -1 });
+
+    console.log("========== ALL JOBS ==========");
+
+    allJobs.forEach((job, index) => {
+      console.log("------------------------");
+      console.log(index + 1);
+      console.log("Profession :", job.profession);
+      console.log("Type       :", job.professionType);
+      console.log("Status     :", job.status);
+    });
 
     const jobs = await HirerPost.find({
       status: "pending",
@@ -721,18 +732,17 @@ export const getJobsForEmployeeProfession = async (req, res) => {
       )
       .sort({ createdAt: -1 });
 
-    console.log("Jobs Found:", jobs.length);
+    console.log("Matched Jobs:", jobs.length);
 
     res.json({ jobs });
 
   } catch (err) {
 
-    console.error("MY PROFESSION ERROR");
     console.error(err);
 
     res.status(500).json({
       msg: "Server error",
-      error: err.message,
     });
+
   }
 };
