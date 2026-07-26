@@ -197,15 +197,13 @@ export const signup = async (req, res) => {
 
 export const verifyOtp = async (req, res) => {
   try {
-    const { email, password, otp, role } = req.body;
+    const { email, password, otp } = req.body;
 
-    if (!email || !otp || !password || !role) {
-      return res.status(400).json({ msg: 'Email, password, OTP and role required' });
-    }
-
-    if (!['hirer', 'employee'].includes(role)) {
-      return res.status(400).json({ msg: 'Invalid role' });
-    }
+    if (!email || !otp || !password) {
+  return res.status(400).json({
+    msg: "Email, password and OTP required",
+  });
+}
 
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -232,27 +230,24 @@ export const verifyOtp = async (req, res) => {
 let user = await getGuestFromRequest(req);
 
 if (user) {
-  // ✅ CONVERT GUEST → REAL USER
   user.email = normalizedEmail;
-  user.password = hashedPassword;
-  user.role = role;
-  user.isGuest = false;
-  user.isVerified = true;
-  user.onboardingStep =
-    role === 'employee' ? 'employee_profile' : 'hirer_profile';
+user.password = hashedPassword;
+user.role = null;
+user.isGuest = false;
+user.isVerified = true;
+user.onboardingStep = "role";
 
   await user.save();
 } else {
   // fallback (no guest exists)
   user = await User.create({
-    email: normalizedEmail,
-    password: hashedPassword,
-    role,
-    isVerified: true,
-    isGuest: false,
-    onboardingStep:
-      role === 'employee' ? 'employee_profile' : 'hirer_profile',
-  });
+  email: normalizedEmail,
+  password: hashedPassword,
+  role: null,
+  isVerified: true,
+  isGuest: false,
+  onboardingStep: "role",
+});
 }
 
     await OTP.deleteMany({ email: normalizedEmail });
