@@ -46,10 +46,16 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, default: null },
 
   role: {
-    type: String,
-    enum: ['owner', 'admin', 'hirer', 'employee', 'guest'],
-    default: 'hirer',
-  },
+  type: String,
+  enum: [
+    "owner",
+    "admin",
+    "hirer",
+    "employee",
+    "guest",
+  ],
+  default: null,
+},
 
   isGuest: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
