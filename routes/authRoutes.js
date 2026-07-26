@@ -1,302 +1,161 @@
-import express from 'express';
-const router = express.Router();
-import {
-  signup,
-  login,
-  sendOtpForgotPassword,
-  resetPassword,
-adminSignup ,
-verifyToken,
-logout,
-deleteAccount,
-getCurrentUser,
-  sendOtp,       
-  verifyOtp,
-  verifyOtpForgotPassword,
-  createGuestUser,
-  confirmEmailChange,
-  verifyOldPassword,
-  adminLogin,
-  createAccount,
-  saveUserLocation,
-  createEmployeeAccount,
-  toggleAvailability,
-  rateEmployee,
-  getEmployeeProfile,
-  updateHirerAccount,
-  changeEmail,
-  sendOtpToNewEmail,
-  verifyCurrentEmailOtp,
-  sendOtpToCurrentEmail,
-  changePasswordWithOld,
-  updateEmployeeProfileImage,
-  getNearbyOfflineEmployees,
-  translateHandler,
-  updateUserLanguage,
-  getUserCredits,
-  claimWelcomeBonus,
-} from '../controllers/authController.js'
-import dotenv from 'dotenv';
-dotenv.config(); // Make sure this is at the very top
-import authMiddleware from '../middleware/authMiddleware.js';
-import { requireAdmin } from '../middleware/adminRoleMiddleware.js';
-import { uploadAvatar } from '../middleware/upload.js';
-import { changeUserRole, getAdminStats, getAllUsers, toggleUserDisable } from '../controllers/adminController.js';
-import { approveJob, getAllJobsForAdmin, rejectJob } from '../controllers/adminJobController.js';
-import { getReports, resolveReport } from '../controllers/adminReportController.js';
-import { getAdminLogs } from '../controllers/adminLogController.js';
+import mongoose from 'mongoose';
+
+const UserSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+
+  firstName: {
+    type: String,
+    default: null,
+  },
+
+  lastName: {
+    type: String,
+    default: null,
+  },
+
+  age: {
+    type: Number,
+    min: 18,
+    max: 100,
+    default: null,
+  },
+
+  gender: {
+    type: String,
+    enum: ["Male", "Female", "Other"],
+    default: null,
+  },
+  genderLabel: {
+  type: String,
+  default: null,
+},
+
+  profession: { type: String, default: null },
+
+  skills: { type: String, default: null },
+  experience: { type: Number, default: null },
+  bio: { type: String, default: null },
+  languages: {
+    type: [String],
+    default: [],
+  },
+  password: { type: String, default: null },
+
+  role: {
+  type: String,
+  enum: [
+    "owner",
+    "admin",
+    "hirer",
+    "employee",
+    "guest",
+  ],
+  default: null,
+},
+
+  isGuest: { type: Boolean, default: true },
+  isVerified: { type: Boolean, default: false },
+
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"],
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+     
+    },
+  },
+
+  profileImage: { type: String, default: null },
+  avatarInitial: { type: String },
+  avatarColor: { type: String },
+
+  onboardingStep: {
+    type: String,
+    enum: ['role', 'employee_profile', 'hirer_profile', 'completed'],
+    default: 'role',
+  },
+
+  isAvailable: {
+    type: Boolean,
+    default: false, // OFF by default
+  },
+
+  isDisabled: {
+    type: Boolean,
+    default: false,
+  },
 
 
-function adminSecretMiddleware(req, res, next) {
-  console.log('Received header x-admin-secret:', req.headers['x-admin-secret']);
-  console.log('Backend expected ADMIN_SECRET:', process.env.ADMIN_SECRET); // ✅ correct
+  ratingAverage: {
+  type: Number,
+  default: 0,
+},
 
+ratingCount: {
+  type: Number,
+  default: 0,
+},
 
-  if (req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ msg: 'Forbidden: Invalid admin secret' });
-  }
-  next();
-}
+ratings: [
+  {
+    hirer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    value: {
+      type: Number,
+      min: 0.5,   // ✅ FIX HERE
+      max: 5,
+    },
+  },
+],
 
-router.put(
-  "/update-language",
-  authMiddleware,   // ✅ ADD THIS
-  updateUserLanguage
-);
+profession: { type: String, default: null },
+professionType: { 
+  type: String, 
+  enum: ["online", "offline", "guest"],  // ✅ ADD guest
+  default: "offline" 
+},
+preferredLanguage: {
+  type: String,
+  default: "en",
+},
+credits: {
+  type: Number,
+  default: 0
+},
+welcomeBonusClaimed: {
+  type: Boolean,
+  default: false
+},
 
-router.post("/translate", translateHandler);
+isPremium: {
+    type: Boolean,
+    default: false,
+},
 
-router.post('/guest', createGuestUser);
+premiumPurchasedAt: {
+    type: Date,
+},
 
+premiumExpiresAt: {
+    type: Date,
+},
 
-router.post(
-  '/admin/signup',
-  uploadAvatar.single('profileImage'),
-  adminSignup
-);
+subscriptionPlan: {
+    type: String,
+    default: null,
+},
 
+  createdAt: { type: Date, default: Date.now },
+});
 
-router.post("/admin/login", adminLogin);
+UserSchema.index({ location: "2dsphere" });
 
-
-router.get(
-  '/admin/dashboard',
-  authMiddleware,
-  requireAdmin,
-  (req, res) => {
-    res.json({ msg: 'Welcome Admin 👑' });
-  }
-);
-
-router.get('/verify-token', authMiddleware ,verifyToken);
-
-router.post('/send-otp', sendOtp);
-router.post(
-  '/verify-otp',
-  verifyOtp
-);
-
-router.post(
-  '/create-account',
-  authMiddleware,
-  uploadAvatar.single('profileImage'),
-  createAccount
-);
-
-router.post(
-  "/create-employee-account",
-  authMiddleware,
-  uploadAvatar.single("profileImage"),
-  createEmployeeAccount
-);
-
-router.post(
-  '/confirm-email-change',
-  authMiddleware,
-  confirmEmailChange
-);
-
-router.post('/signup', signup); // ✅ Add multer upload
-
-router.get('/get-current-user', authMiddleware, getCurrentUser);
-
-router.post('/login', login);
-
-router.post(
-  "/claim-welcome-bonus",
-  authMiddleware,
-  claimWelcomeBonus
-);
-
-
-router.post('/send-otp-forgot-password', sendOtpForgotPassword);
-router.post('/reset-password', resetPassword);
-// Verify OTP for Forgot Password
-router.post('/verify-otp-forgot-password', verifyOtpForgotPassword);
-
-router.post('/logout', logout);
-
-router.delete('/delete-account', authMiddleware, deleteAccount);
-
-
-// authRoutes.js
-router.post(
-  "/verify-old-password",
-  authMiddleware,
-  verifyOldPassword
-);
-
-router.post(
-  "/save-location",
-  authMiddleware,
-  saveUserLocation
-);
-
-
-router.post(
-  "/toggle-availability",
-  authMiddleware,
-  toggleAvailability
-);
-
-router.get(
-  "/admin/users",
-  authMiddleware,
-  requireAdmin,
-  getAllUsers
-);
-
-router.get(
-  "/admin/stats",
-  authMiddleware,
-  requireAdmin,
-  getAdminStats
-);
-
-router.get(
-  "/admin/users",
-  authMiddleware,
-  requireAdmin,
-  getAllUsers
-);
-
-router.patch(
-  "/admin/users/:id/toggle-disable",
-  authMiddleware,
-  requireAdmin,
-  toggleUserDisable
-);
-
-router.patch(
-  "/admin/users/:id/role",
-  authMiddleware,
-  requireAdmin,
-  changeUserRole
-);
-
-router.patch(
-  "/admin/jobs/:id/approve",
-  authMiddleware,
-  requireAdmin,
-  approveJob
-);
-
-router.patch(
-  "/admin/jobs/:id/reject",
-  authMiddleware,
-  requireAdmin,
-  rejectJob
-);
-
-router.get(
-  "/admin/reports",
-  authMiddleware,
-  requireAdmin,
-  getReports
-);
-
-router.patch(
-  "/admin/reports/:id/resolve",
-  authMiddleware,
-  requireAdmin,
-  resolveReport
-);
-
-router.get(
-  "/admin/jobs",
-  authMiddleware,
-  requireAdmin,
-  getAllJobsForAdmin
-);
-
-router.get(
-  "/admin/logs",
-  authMiddleware,
-  requireAdmin,
-  getAdminLogs
-);
-
-router.post(
-  "/rate-employee",
-  authMiddleware,
-  rateEmployee
-);
-
-router.get("/employee/:id", authMiddleware, getEmployeeProfile);
-
-router.put(
-  "/update-hirer-account",
-  authMiddleware,
-  uploadAvatar.single("profileImage"),
-  updateHirerAccount
-);
-
-
-/* EMAIL SECURITY */
-
-router.post(
-  "/security/send-current-email-otp",
-  authMiddleware,
-  sendOtpToCurrentEmail
-);
-
-router.post(
-  "/security/verify-current-email-otp",
-  authMiddleware,
-  verifyCurrentEmailOtp
-);
-
-router.post(
-  "/security/send-new-email-otp",
-  authMiddleware,
-  sendOtpToNewEmail
-);
-
-router.post(
-  "/security/change-email",
-  authMiddleware,
-  changeEmail
-);
-
-router.post(
-  "/change-password-old",
-  authMiddleware,
-  changePasswordWithOld
-);
-
-router.post(
-  "/update-employee-profile-image",
-  authMiddleware,
-  uploadAvatar.single("profileImage"),
-  updateEmployeeProfileImage
-);
-
-router.get(
-  "/employees/nearby-offline",
-  authMiddleware,
-  getNearbyOfflineEmployees
-);
-
-router.get("/user/credits", authMiddleware, getUserCredits);
-
-export default router;
+export default mongoose.model('User', UserSchema); 
