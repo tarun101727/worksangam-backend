@@ -197,88 +197,101 @@ export const signup = async (req, res) => {
 
 export const verifyOtp = async (req, res) => {
   try {
-    const { email, password, otp , role } = req.body;
+    const { email, password, otp } = req.body;
 
     if (!email || !otp || !password) {
-  return res.status(400).json({
-    msg: "Email, password and OTP required",
-  });
-}
+      return res.status(400).json({
+        msg: "Email, password and OTP required",
+      });
+    }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // ✅ ADDED CODE (as requested)
+    // Check OTP
     const otpRecord = await OTP.findOne({
       email: normalizedEmail,
       otp,
     });
 
     if (!otpRecord) {
-      return res.status(400).json({ msg: 'Invalid or expired OTP' });
+      return res.status(400).json({
+        msg: "Invalid or expired OTP",
+      });
     }
 
     const isExpired =
       Date.now() - otpRecord.createdAt.getTime() > 5 * 60 * 1000;
 
     if (isExpired) {
-      return res.status(400).json({ msg: 'OTP expired' });
+      return res.status(400).json({
+        msg: "OTP expired",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 🔥 GET GUEST USER FROM COOKIE
-let user = await getGuestFromRequest(req);
+    // Get guest user from cookie
+    let user = await getGuestFromRequest(req);
 
-if (user) {
-  user.email = normalizedEmail;
-  user.password = hashedPassword;
+    if (user) {
+      // Convert guest to verified user
+      user.email = normalizedEmail;
+      user.password = hashedPassword;
 
-  if (role === "worker") {
-    user.role = "employee";
-  } else if (role === "hirer") {
-    user.role = "hirer";
-  } else {
-    user.role = "hirer";
-  }
+      user.isGuest = false;
+      user.isVerified = true;
 
-  user.isGuest = false;
-  user.isVerified = true;
-  user.onboardingStep = "role";
+      // No role selected yet
+      user.role = null;
 
-  await user.save();
-} else {
-  // fallback (no guest exists)
-  user = await User.create({
-  email: normalizedEmail,
-  password: hashedPassword,
-  role: role == "worker"
-      ? "employee"
-      : "hirer",
-  isVerified: true,
-  isGuest: false,
-  onboardingStep: "role",
-});
-}
+      // Next screen should be role selection
+      user.onboardingStep = "role";
 
-    await OTP.deleteMany({ email: normalizedEmail });
+      await user.save();
+    } else {
+      // No guest exists, create new verified account
+      user = await User.create({
+        email: normalizedEmail,
+        password: hashedPassword,
 
+        // No role yet
+        role: null,
+
+        isVerified: true,
+        isGuest: false,
+        onboardingStep: "role",
+      });
+    }
+
+    // Delete OTP after successful verification
+    await OTP.deleteMany({
+      email: normalizedEmail,
+    });
+
+    // Generate JWT
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: '10y' }
+      {
+        expiresIn: "10y",
+      }
     );
 
+    // Set auth cookie
     setAuthCookie(res, token, user);
 
-    res.json({
-  msg: 'OTP verified',
-  token,
-  userId: user._id,
-  role: user.role,
-});
+    return res.json({
+      msg: "OTP verified",
+      token,
+      userId: user._id,
+      role: user.role,
+      onboardingStep: user.onboardingStep,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    return res.status(500).json({
+      msg: "Server error",
+    });
   }
 };
 
