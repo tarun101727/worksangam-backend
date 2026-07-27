@@ -53,6 +53,7 @@ const UserSchema = new mongoose.Schema({
     "hirer",
     "employee",
     "guest",
+    "both"
   ],
   default: null,
 },
