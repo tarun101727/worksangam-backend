@@ -197,7 +197,7 @@ export const signup = async (req, res) => {
 
 export const verifyOtp = async (req, res) => {
   try {
-    const { email, password, otp } = req.body;
+    const { email, password, otp , role } = req.body;
 
     if (!email || !otp || !password) {
   return res.status(400).json({
@@ -231,11 +231,19 @@ let user = await getGuestFromRequest(req);
 
 if (user) {
   user.email = normalizedEmail;
-user.password = hashedPassword;
-user.role = null;
-user.isGuest = false;
-user.isVerified = true;
-user.onboardingStep = "role";
+  user.password = hashedPassword;
+
+  if (role === "worker") {
+    user.role = "employee";
+  } else if (role === "hirer") {
+    user.role = "hirer";
+  } else {
+    user.role = "hirer";
+  }
+
+  user.isGuest = false;
+  user.isVerified = true;
+  user.onboardingStep = "role";
 
   await user.save();
 } else {
@@ -243,7 +251,9 @@ user.onboardingStep = "role";
   user = await User.create({
   email: normalizedEmail,
   password: hashedPassword,
-  role: null,
+  role: role == "worker"
+      ? "employee"
+      : "hirer",
   isVerified: true,
   isGuest: false,
   onboardingStep: "role",
