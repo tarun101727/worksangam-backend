@@ -1831,3 +1831,47 @@ export const claimWelcomeBonus = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+
+export const selectRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    if (!["employee", "hirer"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role",
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.role = role;
+
+    user.onboardingStep =
+      role === "employee"
+        ? "employee_profile"
+        : "hirer_profile";
+
+    await user.save();
+
+    res.json({
+      success: true,
+      role: user.role,
+      onboardingStep: user.onboardingStep,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
