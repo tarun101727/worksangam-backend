@@ -35,6 +35,7 @@ getCurrentUser,
   updateUserLanguage,
   getUserCredits,
   claimWelcomeBonus,
+  selectRole,
 } from '../controllers/authController.js'
 import dotenv from 'dotenv';
 dotenv.config(); // Make sure this is at the very top
@@ -68,6 +69,11 @@ router.post("/translate", translateHandler);
 
 router.post('/guest', createGuestUser);
 
+router.post(
+  "/select-role",
+  authMiddleware,
+  selectRole,
+);
 
 router.post(
   '/admin/signup',
