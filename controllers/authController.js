@@ -1855,12 +1855,15 @@ export const selectRole = async (req, res) => {
 
     user.role = role;
 
-    user.onboardingStep =
-      role === "employee"
-        ? "employee_profile"
-        : "hirer_profile";
+if (role == "employee") {
+    user.onboardingStep = "employee_profile";
+}
 
-    await user.save();
+if (role == "hirer") {
+    user.onboardingStep = "hirer_profile";
+}
+
+await user.save();
 
     res.json({
       success: true,
