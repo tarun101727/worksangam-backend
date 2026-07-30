@@ -245,7 +245,7 @@ export const verifyOtp = async (req, res) => {
       user.role = null;
 
       // Next screen should be role selection
-      user.onboardingStep = "role";
+      user.onboardingStep = "select_role";
 
       await user.save();
     } else {
