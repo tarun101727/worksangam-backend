@@ -251,16 +251,15 @@ export const verifyOtp = async (req, res) => {
     } else {
       // No guest exists, create new verified account
       user = await User.create({
-        email: normalizedEmail,
-        password: hashedPassword,
+  email: normalizedEmail,
+  password: hashedPassword,
 
-        // No role yet
-        role: null,
+  role: null,
 
-        isVerified: true,
-        isGuest: false,
-        onboardingStep: "role",
-      });
+  isVerified: true,
+  isGuest: false,
+  onboardingStep: "select_role",
+});
     }
 
     // Delete OTP after successful verification
