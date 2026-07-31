@@ -77,10 +77,15 @@ const UserSchema = new mongoose.Schema({
   avatarColor: { type: String },
 
   onboardingStep: {
-    type: String,
-    enum: ['role', 'employee_profile', 'hirer_profile', 'completed'],
-    default: 'role',
-  },
+  type: String,
+  enum: [
+    "select_role",
+    "employee_profile",
+    "hirer_profile",
+    "completed",
+  ],
+  default: "select_role",
+},
 
   isAvailable: {
     type: Boolean,
