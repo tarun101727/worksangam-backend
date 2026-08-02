@@ -34,14 +34,10 @@ export const getTranslations = async (req, res) => {
   try {
     const { lang } = req.params;
 
-    console.log("=================================");
-    console.log("Requested language:", lang);
-
     const translations = await Translate.findOne({
       languageCode: lang,
     });
 
-    console.log("MongoDB result:", translations);
 
     if (!translations) {
       return res.status(404).json({
