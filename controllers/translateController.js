@@ -34,15 +34,26 @@ export const getTranslations = async (req, res) => {
   try {
     const { lang } = req.params;
 
-    const translations = await Translate.findOne({ languageCode: lang });
+    console.log("=================================");
+    console.log("Requested language:", lang);
+
+    const translations = await Translate.findOne({
+      languageCode: lang,
+    });
+
+    console.log("MongoDB result:", translations);
 
     if (!translations) {
-      return res.status(404).json({ msg: "Language not found" });
+      return res.status(404).json({
+        msg: "Language not found",
+      });
     }
 
     res.json(translations.translations);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      msg: "Server error",
+    });
   }
 };
