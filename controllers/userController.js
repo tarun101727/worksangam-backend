@@ -12,22 +12,25 @@ export const getEmployeesByType = async (req, res) => {
       });
     }
 
-    const query = {
-      role: "employee",
-      onboardingStep: "completed",
+   const query = {
+  role: "employee",
+  onboardingStep: "completed",
+};
 
-      isAvailable: status === "online",
-    };
+// Only filter online/offline when a profession is selected
+if (profession) {
+  query.profession = {
+    $regex: new RegExp(`^${profession}$`, "i"),
+  };
 
-    if (profession) {
-      query.profession = {
-        $regex: new RegExp(`^${profession}$`, "i"),
-      };
-    }
+  query.isAvailable = status === "online";
+}
 
-    const employees = await User.find(query).select(
-      "firstName lastName profession profileImage isAvailable avatarInitial avatarColor location"
-    );
+const employees = await User.find(query)
+  .sort({ createdAt: -1 }) // newest employees first
+  .select(
+    "firstName lastName profession profileImage isAvailable avatarInitial avatarColor location"
+  );
 
     res.json({ employees });
 
