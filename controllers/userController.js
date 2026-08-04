@@ -2,7 +2,6 @@ import User from "../models/User.js";
 
 export const getEmployeesByType = async (req, res) => {
   try {
-
     const { status } = req.params;
     const { profession } = req.query;
 
@@ -12,32 +11,32 @@ export const getEmployeesByType = async (req, res) => {
       });
     }
 
-   const query = {
-  role: "employee",
-  onboardingStep: "completed",
-};
+    const query = {
+      role: "employee",
+      onboardingStep: "completed",
+      professionType: status,
+    };
 
-// Only filter online/offline when a profession is selected
-if (profession) {
-  query.profession = {
-    $regex: new RegExp(`^${profession}$`, "i"),
-  };
+    if (profession && profession.trim() !== "") {
+      query.profession = {
+        $regex: new RegExp(`^${profession}$`, "i"),
+      };
+    }
 
-  query.isAvailable = status === "online";
-}
+    if (status === "online") {
+      query.isAvailable = true;
+    }
 
-const employees = await User.find(query)
-  .sort({ createdAt: -1 }) // newest employees first
-  .select(
-    "firstName lastName profession profileImage isAvailable avatarInitial avatarColor location"
-  );
+    const employees = await User.find(query)
+      .sort({ createdAt: -1 })
+      .select(
+        "firstName lastName profession professionType profileImage isAvailable avatarInitial avatarColor location createdAt"
+      );
 
     res.json({ employees });
 
   } catch (err) {
-
     console.error("Get employees error:", err);
-
     res.status(500).json({
       msg: "Server error"
     });
