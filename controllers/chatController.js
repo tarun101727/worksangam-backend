@@ -32,6 +32,7 @@ export const createChat = async (req, res) => {
       sender.subscriptionPlan = null;
       sender.premiumPurchasedAt = null;
       sender.premiumExpiresAt = null;
+
       await sender.save();
     }
 
@@ -40,24 +41,32 @@ export const createChat = async (req, res) => {
       return res.status(403).json({
         code: "SUBSCRIPTION_REQUIRED",
         message:
-            "A Premium Subscription is required to chat with employees.",
+          "A Premium Subscription is required to chat with employees.",
       });
     }
 
-    let chat = await Chat.findOne({
-      participants: { $all: [senderId, receiverId] }
-    });
-
-    if (!chat) {
-      chat = await Chat.create({
-        participants: [senderId, receiverId]
-      });
-    }
+    // Find existing chat or create it
+    const chat = await Chat.findOneAndUpdate(
+      {
+        participants: {
+          $all: [senderId, receiverId],
+        },
+      },
+      {
+        $setOnInsert: {
+          participants: [senderId, receiverId],
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
 
     res.json(chat);
 
   } catch (err) {
-    console.error(err);
+    console.error("Create chat error:", err);
 
     res.status(500).json({
       msg: "Server error",
