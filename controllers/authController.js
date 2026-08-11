@@ -106,40 +106,91 @@ const sendOtpEmail = async (email, subject = "Your OTP Code") => {
     throw new Error("Invalid email address");
   }
 
-  // Rate limit (1 OTP per 60 sec)
+  // ============================================================
+  // OTP RATE LIMIT
+  // 1 OTP per 60 seconds
+  // ============================================================
+
+  const COOLDOWN_SECONDS = 60;
+
   const recentOtp = await OTP.findOne({
     email,
-    createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
+    createdAt: {
+      $gt: new Date(Date.now() - COOLDOWN_SECONDS * 1000),
+    },
+  }).sort({
+    createdAt: -1,
   });
 
   if (recentOtp) {
-    throw new Error("Please wait before requesting another OTP");
+    const elapsedSeconds =
+      Math.floor(
+        (Date.now() - recentOtp.createdAt.getTime()) / 1000
+      );
+
+    const remainingSeconds = Math.max(
+      1,
+      COOLDOWN_SECONDS - elapsedSeconds
+    );
+
+    const error = new Error(
+      "Please wait before requesting another OTP"
+    );
+
+    // Extra information for Flutter
+    error.code = "OTP_COOLDOWN";
+    error.retryAfter = remainingSeconds;
+
+    throw error;
   }
 
-  // Generate OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // ============================================================
+  // GENERATE OTP
+  // ============================================================
 
-  // Save OTP
+  const otp = Math.floor(
+    100000 + Math.random() * 900000
+  ).toString();
+
+  // ============================================================
+  // SAVE OTP
+  // ============================================================
+
   await OTP.create({
     email,
     otp,
     createdAt: new Date(),
   });
 
-  // Send Email via Postmark
+  // ============================================================
+  // SEND EMAIL
+  // ============================================================
+
   await postmarkClient.sendEmail({
     From: "Worksangam <info@worksangam.in>",
     To: email,
     Subject: subject,
+
     HtmlBody: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
         <h2>Worksangam Verification</h2>
-        <h1 style="letter-spacing: 4px;">${otp}</h1>
-        <p>This OTP is valid for <b>5 minutes</b>.</p>
-        <p>If you didn’t request this, ignore this email.</p>
+
+        <h1 style="letter-spacing: 4px;">
+          ${otp}
+        </h1>
+
+        <p>
+          This OTP is valid for <b>5 minutes</b>.
+        </p>
+
+        <p>
+          If you didn’t request this, ignore this email.
+        </p>
       </div>
     `,
-    TextBody: `Your OTP is ${otp}. Valid for 5 minutes.`,
+
+    TextBody:
+      `Your OTP is ${otp}. Valid for 5 minutes.`,
   });
 
   return otp;
@@ -385,20 +436,56 @@ export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
 
-    email = email.toLowerCase().trim();
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ msg: "Email already registered" });
+    if (!email) {
+      return res.status(400).json({
+        msg: "Email is required",
+      });
     }
 
-    await sendOtpEmail(email, "Signup OTP");
+    email = email.toLowerCase().trim();
 
-    res.json({ msg: "OTP sent successfully" });
+    const existingUser = await User.findOne({
+      email,
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        msg: "Email already registered",
+      });
+    }
+
+    await sendOtpEmail(
+      email,
+      "Signup OTP"
+    );
+
+    return res.status(200).json({
+      msg: "OTP sent successfully",
+    });
 
   } catch (err) {
-    console.error("sendOtp error:", err.message);
-    res.status(400).json({ msg: err.message });
+    console.error(
+      "sendOtp error:",
+      err.message
+    );
+
+    // ==========================================================
+    // OTP COOLDOWN RESPONSE
+    // ==========================================================
+
+    if (err.code === "OTP_COOLDOWN") {
+      return res.status(429).json({
+        msg: "Please wait before requesting another OTP",
+        code: "OTP_COOLDOWN",
+        retryAfter: err.retryAfter,
+      });
+    }
+
+    return res.status(400).json({
+      msg:
+        err.message ||
+        "Failed to send OTP",
+    });
   }
 };
 
