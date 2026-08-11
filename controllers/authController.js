@@ -385,20 +385,73 @@ export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
 
-    email = email.toLowerCase().trim();
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ msg: "Email already registered" });
+    if (!email) {
+      return res.status(400).json({
+        msg: "Email is required",
+      });
     }
 
-    await sendOtpEmail(email, "Signup OTP");
+    email = email.toLowerCase().trim();
 
-    res.json({ msg: "OTP sent successfully" });
+    // ==========================================================
+    // CHECK WHETHER EMAIL IS ALREADY REGISTERED
+    // ==========================================================
+
+    const existingUser = await User.findOne({
+      email,
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        msg: "Email already registered",
+      });
+    }
+
+    // ==========================================================
+    // SEND OTP
+    // ==========================================================
+
+    await sendOtpEmail(
+      email,
+      "Signup OTP"
+    );
+
+    return res.json({
+      msg: "OTP sent successfully",
+
+      // Flutter can immediately start its timer
+      cooldownSeconds:
+        OTP_RESEND_COOLDOWN_SECONDS,
+    });
 
   } catch (err) {
-    console.error("sendOtp error:", err.message);
-    res.status(400).json({ msg: err.message });
+    console.error(
+      "sendOtp error:",
+      err.message
+    );
+
+    // ==========================================================
+    // RATE LIMIT RESPONSE
+    // ==========================================================
+
+    if (
+      err.remainingSeconds !== undefined
+    ) {
+      return res.status(429).json({
+        msg:
+          `Please wait ${err.remainingSeconds} ` +
+          `seconds before requesting another OTP`,
+
+        remainingSeconds:
+          err.remainingSeconds,
+      });
+    }
+
+    return res.status(400).json({
+      msg:
+        err.message ||
+        "Failed to send OTP",
+    });
   }
 };
 
