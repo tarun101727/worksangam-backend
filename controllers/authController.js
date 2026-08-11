@@ -385,73 +385,20 @@ export const sendOtp = async (req, res) => {
   try {
     let { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({
-        msg: "Email is required",
-      });
-    }
-
     email = email.toLowerCase().trim();
 
-    // ==========================================================
-    // CHECK WHETHER EMAIL IS ALREADY REGISTERED
-    // ==========================================================
-
-    const existingUser = await User.findOne({
-      email,
-    });
-
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({
-        msg: "Email already registered",
-      });
+      return res.status(400).json({ msg: "Email already registered" });
     }
 
-    // ==========================================================
-    // SEND OTP
-    // ==========================================================
+    await sendOtpEmail(email, "Signup OTP");
 
-    await sendOtpEmail(
-      email,
-      "Signup OTP"
-    );
-
-    return res.json({
-      msg: "OTP sent successfully",
-
-      // Flutter can immediately start its timer
-      cooldownSeconds:
-        OTP_RESEND_COOLDOWN_SECONDS,
-    });
+    res.json({ msg: "OTP sent successfully" });
 
   } catch (err) {
-    console.error(
-      "sendOtp error:",
-      err.message
-    );
-
-    // ==========================================================
-    // RATE LIMIT RESPONSE
-    // ==========================================================
-
-    if (
-      err.remainingSeconds !== undefined
-    ) {
-      return res.status(429).json({
-        msg:
-          `Please wait ${err.remainingSeconds} ` +
-          `seconds before requesting another OTP`,
-
-        remainingSeconds:
-          err.remainingSeconds,
-      });
-    }
-
-    return res.status(400).json({
-      msg:
-        err.message ||
-        "Failed to send OTP",
-    });
+    console.error("sendOtp error:", err.message);
+    res.status(400).json({ msg: err.message });
   }
 };
 
