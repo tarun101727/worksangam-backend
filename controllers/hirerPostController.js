@@ -149,13 +149,35 @@ export const createPost = async (req, res) => {
     }
 
     /* ================= PREFERRED TIME VALIDATION ================= */
-    if (
-      preferredTime &&
-      preferredTime.type === "custom" &&
-      (!preferredTime.from || !preferredTime.to)
-    ) {
-      return res.status(400).json({ msg: "Custom time range required" });
-    }
+
+if (preferredTime) {
+  if (!preferredTime.type) {
+    return res.status(400).json({
+      msg: "Preferred time type is required",
+    });
+  }
+
+  // TODAY
+  if (
+    preferredTime.type === "today" &&
+    !preferredTime.date
+  ) {
+    return res.status(400).json({
+      msg: "Today date is required",
+    });
+  }
+
+  // CUSTOM
+  if (
+    preferredTime.type === "custom" &&
+    (!preferredTime.fromDate ||
+      !preferredTime.toDate)
+  ) {
+    return res.status(400).json({
+      msg: "Custom date range required",
+    });
+  }
+}
 
     /* ================= HANDLE FILES (CLOUDINARY) ================= */
 const files = req.files || [];
