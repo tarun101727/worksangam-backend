@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const PriceSchema = new mongoose.Schema(
@@ -58,12 +57,32 @@ const PreferredTimeSchema = new mongoose.Schema(
       enum: ["asap", "today", "custom"],
       required: true,
     },
-    from: {
+
+    // Used when type = "today"
+    date: {
       type: Date,
       default: null,
     },
-    to: {
+
+    // Used when type = "custom"
+    fromDate: {
       type: Date,
+      default: null,
+    },
+
+    toDate: {
+      type: Date,
+      default: null,
+    },
+
+    // Flutter sends TimeOfDay as strings
+    fromTime: {
+      type: String,
+      default: null,
+    },
+
+    toTime: {
+      type: String,
       default: null,
     },
   },
