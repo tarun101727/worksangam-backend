@@ -262,3 +262,136 @@ export const getSubscriptionStatus = async (req, res) => {
     });
   }
 };
+
+export const verifySubscriptionOrder = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        msg: "Order ID is required",
+      });
+    }
+
+    const payment = await SubscriptionPayment.findOne({
+      orderId,
+      userId,
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        msg: "Subscription payment not found",
+      });
+    }
+
+    // Already processed
+    if (payment.status === "SUCCESS") {
+      const user = await User.findById(userId);
+
+      return res.status(200).json({
+        success: true,
+        isPremium: user?.isPremium === true,
+        msg: "Subscription already activated",
+      });
+    }
+
+    // Ask Cashfree for the real order status
+    const response = await axios.get(
+      `https://api.cashfree.com/pg/orders/${orderId}`,
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2023-08-01",
+        },
+      }
+    );
+
+    const orderStatus = response.data?.order_status;
+
+    console.log(
+      "Cashfree order status:",
+      orderId,
+      orderStatus
+    );
+
+    // Payment is not completed
+    if (orderStatus !== "PAID") {
+      return res.status(400).json({
+        success: false,
+        paid: false,
+        orderStatus,
+        msg: "Payment has not been completed",
+      });
+    }
+
+    // ----------------------------------------------------------
+    // ACTIVATE SUBSCRIPTION
+    // ----------------------------------------------------------
+
+    payment.status = "SUCCESS";
+    await payment.save();
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        msg: "User not found",
+      });
+    }
+
+    const now = new Date();
+
+    let startDate = now;
+
+    // Extend existing active subscription
+    if (
+      user.premiumExpiresAt &&
+      user.premiumExpiresAt > now
+    ) {
+      startDate = new Date(user.premiumExpiresAt);
+    }
+
+    const expiresAt = new Date(startDate);
+
+    expiresAt.setDate(
+      expiresAt.getDate() + payment.durationDays
+    );
+
+    user.isPremium = true;
+    user.subscriptionPlan = payment.planName;
+
+    if (!user.premiumPurchasedAt) {
+      user.premiumPurchasedAt = now;
+    }
+
+    user.premiumExpiresAt = expiresAt;
+
+    await user.save();
+
+    console.log(
+      `✅ Subscription verified and activated: ${user._id}`
+    );
+
+    return res.status(200).json({
+      success: true,
+      paid: true,
+      isPremium: true,
+      subscriptionPlan: user.subscriptionPlan,
+      premiumExpiresAt: user.premiumExpiresAt,
+      msg: "Subscription activated successfully",
+    });
+
+  } catch (err) {
+    console.error(
+      "Verify Subscription Order Error:",
+      err.response?.data || err.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      msg: "Unable to verify payment",
+    });
+  }
+};
