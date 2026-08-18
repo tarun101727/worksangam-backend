@@ -7,9 +7,12 @@ import {
   createSubscriptionOrder,
   cashfreeSubscriptionWebhook,
   getSubscriptionStatus,
+  verifySubscriptionOrder,
 } from "../controllers/subscriptionController.js";
 
 const router = express.Router();
+
+
 
 /*
 ---------------------------------------
@@ -31,6 +34,14 @@ router.post(
   authMiddleware,
   createSubscriptionOrder
 );
+
+router.post(
+  "/verify-order",
+  authMiddleware,
+  verifySubscriptionOrder
+);
+
+
 
 /*
 ---------------------------------------
